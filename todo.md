@@ -41,3 +41,4 @@
 - [x] Clarify Settings monitoring description: real-time every 15s when app is open, ~15 min OS check when closed
 - [x] Update Settings wording to accurately reflect iOS background suspension (15s while active, iOS may suspend after a few minutes)
 - [x] Fix ring arc: 50% battery = exactly half circle filled, 100% = full circle
+- [x] Restore 270° arc, fix fill so 50% = halfway through arc, 100% = full arc
