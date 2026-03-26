@@ -18,3 +18,16 @@
 - [x] Fix charging pulse: only ring SVG animates, logo and percentage stay static
 - [x] Add device model display (iPhone 15, iPad, etc.) to the home screen
 - [x] Remove white background corners from streetlight logo PNG
+- [x] First-launch permission prompt for background battery monitoring
+- [x] Background battery task that fires notification when battery < 30%
+- [x] Settings screen with always-on monitoring toggle (default: on)
+- [x] Persist settings with AsyncStorage
+- [x] Add Settings tab to navigation
+- [x] Fix drain rate calculation — use rolling average over longer window to prevent inflated readings
+- [x] Fix drain rate calculation — use rolling average over longer window to prevent inflated readings
+- [x] Round time remaining to whole minutes (no decimal digits)
+- [x] Remove in-app warning banner — warnings only appear as push notifications when app is backgrounded/closed
+- [x] Dashboard always shows live minutes remaining (no banner needed in-app)
+- [x] Include current drain rate in push notification warning body
+- [x] Flip charge milestone order: 100% on top, 10% on bottom
+- [x] Battery percentage matches phone exactly, updates every 1% in real-time (charging and discharging)

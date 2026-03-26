@@ -13,17 +13,17 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { useBatteryMonitor } from "@/hooks/use-battery-monitor";
 import { BatteryRing } from "@/components/battery-ring";
-import { WarningBanner } from "@/components/warning-banner";
 import { ChargingMilestones } from "@/components/charging-milestones";
 import { StatsRow } from "@/components/stats-row";
 
-// Configure notification handler so alerts show while app is foregrounded
+// Notifications only appear as native pop-ups when the app is backgrounded or closed.
+// When the app is open, the dashboard shows live minutes remaining instead.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
+    shouldShowAlert: false,   // suppress in-app alert
+    shouldShowBanner: false,  // suppress in-app banner
+    shouldShowList: true,     // still log to notification centre
+    shouldPlaySound: false,
     shouldSetBadge: false,
   }),
 });
@@ -89,14 +89,6 @@ export default function HomeScreen() {
 
         {/* Divider */}
         <View style={styles.dividerLine} />
-
-        {/* Warning Banner (discharge only) */}
-        {!isCharging && (
-          <WarningBanner
-            minutesLeft={battery.minutesRemaining}
-            activeWarning={battery.activeWarning}
-          />
-        )}
 
         {/* Battery Ring */}
         <View style={styles.ringContainer}>
@@ -221,7 +213,7 @@ export default function HomeScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>CONWAY ELECTRIC · STAY CHARGED.</Text>
+          <Text style={styles.footerText}>CONWAY ELECTRIC · STAY CHARGED</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

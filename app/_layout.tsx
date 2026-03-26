@@ -5,9 +5,18 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { Platform } from "react-native";
+import { Platform, Alert } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+// Register background task handler in global scope (required by expo-task-manager)
+import "@/lib/background-battery-task";
+import {
+  STORAGE_KEY_FIRST_LAUNCH,
+  STORAGE_KEY_ALWAYS_ON,
+  registerBackgroundBatteryTask,
+} from "@/lib/background-battery-task";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -36,6 +45,39 @@ export default function RootLayout() {
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
     initManusRuntime();
+  }, []);
+
+  // First-launch: request notification permission and enable background monitoring
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    (async () => {
+      const done = await AsyncStorage.getItem(STORAGE_KEY_FIRST_LAUNCH);
+      if (done) return; // already shown
+
+      // Request notification permission
+      const { status } = await Notifications.requestPermissionsAsync();
+
+      // Default always-on to true
+      const alwaysOnStored = await AsyncStorage.getItem(STORAGE_KEY_ALWAYS_ON);
+      if (alwaysOnStored === null) {
+        await AsyncStorage.setItem(STORAGE_KEY_ALWAYS_ON, "true");
+      }
+
+      // Register background task if permission granted
+      if (status === "granted") {
+        await registerBackgroundBatteryTask();
+      }
+
+      await AsyncStorage.setItem(STORAGE_KEY_FIRST_LAUNCH, "true");
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Enable Notifications",
+          "Conway Electric Power Monitor needs notification permission to warn you when your battery is running low. You can enable this in Settings.",
+          [{ text: "OK" }]
+        );
+      }
+    })();
   }, []);
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {

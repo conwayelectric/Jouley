@@ -25,12 +25,14 @@ export function ChargingMilestones({
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>CHARGE MILESTONES</Text>
       <View style={styles.list}>
-        {milestones.map((m, index) => {
-          const isNext = !m.reached && (index === 0 || milestones[index - 1].reached);
+        {[...milestones].reverse().map((m, index, arr) => {
+          // In reversed order, "next" is the first unreached milestone from the bottom
+          // i.e. the last item in the reversed array that is unreached and whose successor (lower %) is reached
+          const isNext = !m.reached && (index === arr.length - 1 || arr[index + 1].reached);
           return (
             <View key={m.percent} style={styles.row}>
-              {/* Connector line */}
-              {index < milestones.length - 1 && (
+              {/* Connector line — runs downward to next row */}
+              {index < arr.length - 1 && (
                 <View
                   style={[
                     styles.connector,

@@ -18,6 +18,8 @@ const MAPPING = {
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "battery.100": "battery-full",
+  "gearshape.fill": "settings",
 } as IconMapping;
 
 /**

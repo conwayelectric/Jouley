@@ -87,6 +87,12 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     [
+      "expo-background-fetch",
+      {
+        "UIBackgroundModes": ["fetch", "processing"]
+      }
+    ],
+    [
       "expo-audio",
       {
         microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",

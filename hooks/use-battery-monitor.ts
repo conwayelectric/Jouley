@@ -10,10 +10,22 @@ const DISCHARGE_WARNINGS = [20, 15, 10, 7, 5, 2];
 const CHARGE_MILESTONES = [10, 25, 50, 75, 100];
 
 // How many samples to keep for rate calculation
-const SAMPLE_WINDOW = 10;
+const SAMPLE_WINDOW = 20;
 
-// Polling interval in ms (30 seconds)
-const POLL_INTERVAL = 30_000;
+// Polling interval in ms (60 seconds — longer interval gives more accurate rate)
+const POLL_INTERVAL = 60_000;
+
+// Fast display refresh interval (15 seconds) — keeps displayed % in sync with phone
+const DISPLAY_POLL_INTERVAL = 15_000;
+
+// Minimum elapsed time (ms) before we trust the rate calculation
+const MIN_RATE_WINDOW_MS = 5 * 60_000; // 5 minutes
+
+// Maximum realistic drain rate (% per minute) — ~1.5%/min is very heavy use
+const MAX_DRAIN_RATE = 1.5;
+
+// Maximum realistic charge rate (% per minute) — ~1.2%/min is fast charging
+const MAX_CHARGE_RATE = 1.2;
 
 export type BatteryMode = "discharging" | "charging" | "full" | "unknown";
 
@@ -44,14 +56,29 @@ export interface BatteryMonitorState {
   isCalculating: boolean;
 }
 
-function calcRatePerMin(samples: BatterySample[]): number | null {
+function calcRatePerMin(
+  samples: BatterySample[],
+  maxRate: number,
+  requireMinWindow = true
+): number | null {
   if (samples.length < 2) return null;
   const oldest = samples[0];
   const newest = samples[samples.length - 1];
+  const elapsedMs = newest.timestamp - oldest.timestamp;
+
+  // Require a minimum observation window to avoid noise-inflated readings
+  if (requireMinWindow && elapsedMs < MIN_RATE_WINDOW_MS) return null;
+
+  const deltaMin = elapsedMs / 60_000;
+  if (deltaMin < 0.5) return null;
+
   const deltaLevel = Math.abs(newest.level - oldest.level) * 100; // in %
-  const deltaMin = (newest.timestamp - oldest.timestamp) / 60_000;
-  if (deltaMin < 0.1) return null;
-  return deltaLevel / deltaMin;
+  if (deltaLevel < 0.01) return null; // no meaningful change
+
+  const rate = deltaLevel / deltaMin;
+
+  // Cap at realistic maximum to filter sensor noise
+  return Math.min(rate, maxRate);
 }
 
 function buildMilestones(
@@ -78,15 +105,19 @@ async function requestNotificationPermission(): Promise<boolean> {
   return status === "granted";
 }
 
-async function sendWarningNotification(minutesLeft: number) {
-  const urgency = minutesLeft <= 5 ? "🔴" : "⚠️";
+async function sendWarningNotification(minutesLeft: number, drainRatePerMin: number | null) {
+  const urgency = minutesLeft <= 5 ? "🔴" : minutesLeft <= 10 ? "🟠" : "⚠️";
+  const rateStr = drainRatePerMin
+    ? ` Drain rate: ${drainRatePerMin.toFixed(2)}%/min.`
+    : "";
+  const body =
+    minutesLeft <= 2
+      ? `Battery critically low — plug in immediately!${rateStr}`
+      : `${minutesLeft} min of battery remaining — plug in soon.${rateStr}`;
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: `${urgency} Conway Electric Power Monitor`,
-      body:
-        minutesLeft <= 2
-          ? "Battery critically low — plug in immediately!"
-          : `${minutesLeft} minutes of battery remaining — consider charging soon.`,
+      title: `${urgency} Battery Warning — ${minutesLeft} min left`,
+      body,
       sound: true,
     },
     trigger: null, // fire immediately
@@ -155,12 +186,11 @@ export function useBatteryMonitor(): BatteryMonitorState {
       }
 
       addSample(level);
-      const rate = calcRatePerMin(samplesRef.current);
 
       if (mode === "discharging") {
-        const drainRate = rate;
+        const drainRate = calcRatePerMin(samplesRef.current, MAX_DRAIN_RATE);
         const minutesRemaining =
-          drainRate && drainRate > 0 ? (levelPct / drainRate) : null;
+          drainRate && drainRate > 0 ? Math.ceil(levelPct / drainRate) : null;
 
         // Check warnings
         let activeWarning: number | null = null;
@@ -171,7 +201,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
               !firedWarningsRef.current.has(threshold)
             ) {
               firedWarningsRef.current.add(threshold);
-              sendWarningNotification(threshold);
+              sendWarningNotification(threshold, drainRate);
               activeWarning = threshold;
               break;
             }
@@ -204,12 +234,12 @@ export function useBatteryMonitor(): BatteryMonitorState {
             minutesAway: null,
             reached: false,
           })),
-          isCalculating: samplesRef.current.length < 2,
+          isCalculating: samplesRef.current.length < 2 || (samplesRef.current.length >= 2 && (samplesRef.current[samplesRef.current.length-1].timestamp - samplesRef.current[0].timestamp) < MIN_RATE_WINDOW_MS),
         }));
       } else if (mode === "charging" || mode === "full") {
-        const chargeRate = mode === "full" ? null : rate;
+        const chargeRate = mode === "full" ? null : calcRatePerMin(samplesRef.current, MAX_CHARGE_RATE);
         const minutesToFull =
-          chargeRate && chargeRate > 0 ? ((100 - levelPct) / chargeRate) : null;
+          chargeRate && chargeRate > 0 ? Math.ceil((100 - levelPct) / chargeRate) : null;
         const milestones = buildMilestones(levelPct, chargeRate ?? null);
 
         // Fire milestone notifications
@@ -232,7 +262,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
           chargeRatePerMin: chargeRate,
           minutesToFull,
           milestones,
-          isCalculating: mode === "charging" && samplesRef.current.length < 2,
+          isCalculating: mode === "charging" && (samplesRef.current.length < 2 || (samplesRef.current.length >= 2 && (samplesRef.current[samplesRef.current.length-1].timestamp - samplesRef.current[0].timestamp) < MIN_RATE_WINDOW_MS)),
         }));
       } else {
         setState((prev) => ({
@@ -255,6 +285,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
     let levelSub: Battery.Subscription | undefined;
     let stateSub: Battery.Subscription | undefined;
     let pollTimer: ReturnType<typeof setInterval> | undefined;
+    let displayTimer: ReturnType<typeof setInterval> | undefined;
 
     (async () => {
       const available = await Battery.isAvailableAsync();
@@ -285,7 +316,24 @@ export function useBatteryMonitor(): BatteryMonitorState {
         await compute(currentLevel, newState);
       });
 
-      // Poll every 30s for rate calculation even if level hasn't changed 1%
+      // Fast display poll: refresh the displayed % every 15s so it stays in sync with the phone
+      displayTimer = setInterval(async () => {
+        const [lvl, bState] = await Promise.all([
+          Battery.getBatteryLevelAsync(),
+          Battery.getBatteryStateAsync(),
+        ]);
+        // Update level display immediately without waiting for rate window
+        const levelPct = Math.round(lvl * 100);
+        setState((prev) => (prev.level !== levelPct ? { ...prev, level: levelPct } : prev));
+        // Also update mode in case plug state changed
+        let mode: BatteryMode = "unknown";
+        if (bState === Battery.BatteryState.CHARGING) mode = "charging";
+        else if (bState === Battery.BatteryState.FULL) mode = "full";
+        else if (bState === Battery.BatteryState.UNPLUGGED) mode = "discharging";
+        setState((prev) => (prev.mode !== mode ? { ...prev, mode } : prev));
+      }, DISPLAY_POLL_INTERVAL);
+
+      // Slower rate-calculation poll (60s) for accurate drain/charge rate
       pollTimer = setInterval(async () => {
         const [lvl, bState] = await Promise.all([
           Battery.getBatteryLevelAsync(),
@@ -298,6 +346,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
     return () => {
       levelSub?.remove();
       stateSub?.remove();
+      if (displayTimer) clearInterval(displayTimer);
       if (pollTimer) clearInterval(pollTimer);
     };
   }, [compute]);
