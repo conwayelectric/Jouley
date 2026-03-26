@@ -33,6 +33,9 @@ export const STORAGE_KEY_ALWAYS_ON = "conway_always_on_monitoring";
 export const STORAGE_KEY_LAST_LEVEL = "conway_last_battery_level";
 export const STORAGE_KEY_LAST_TIMESTAMP = "conway_last_battery_timestamp";
 export const STORAGE_KEY_LAST_DRAIN_RATE = "conway_last_drain_rate";
+export const STORAGE_KEY_LAST_MODE = "conway_last_battery_mode"; // "discharging" | "charging"
+export const STORAGE_KEY_LAST_CHARGE_LEVEL = "conway_last_charge_level";
+export const STORAGE_KEY_LAST_CHARGE_TIMESTAMP = "conway_last_charge_timestamp";
 export const STORAGE_KEY_FIRED_WARNINGS = "conway_fired_warnings"; // JSON array of fired thresholds
 export const STORAGE_KEY_FIRST_LAUNCH = "conway_first_launch_done";
 export const STORAGE_KEY_LAST_BACKGROUND_CHECK = "conway_last_background_check";
@@ -232,20 +235,38 @@ export async function unregisterBackgroundBatteryTask(): Promise<void> {
 }
 
 /**
- * Called from the in-app hook to keep the background task's stored drain rate
- * up to date. This ensures the predictive algorithm uses the most recent rate.
+ * Called from the in-app hook to persist the current battery state so that:
+ * - The background task's predictive algorithm always has a fresh drain rate.
+ * - On next app open, the sample window can be seeded immediately for both
+ *   discharging (drain rate) and charging (charge rate) modes.
  */
 export async function updateStoredDrainRate(
   levelPct: number,
   drainRatePerMin: number | null
 ): Promise<void> {
   const now = Date.now();
-  await AsyncStorage.setItem(STORAGE_KEY_LAST_LEVEL, String(levelPct));
-  await AsyncStorage.setItem(STORAGE_KEY_LAST_TIMESTAMP, String(now));
-  if (drainRatePerMin !== null) {
-    await AsyncStorage.setItem(
-      STORAGE_KEY_LAST_DRAIN_RATE,
-      String(drainRatePerMin)
-    );
-  }
+  await AsyncStorage.multiSet([
+    [STORAGE_KEY_LAST_LEVEL, String(levelPct)],
+    [STORAGE_KEY_LAST_TIMESTAMP, String(now)],
+    [STORAGE_KEY_LAST_MODE, "discharging"],
+    ...(drainRatePerMin !== null
+      ? [[STORAGE_KEY_LAST_DRAIN_RATE, String(drainRatePerMin)] as [string, string]]
+      : []),
+  ]);
+}
+
+/**
+ * Called from the in-app hook while charging to persist the current level and
+ * timestamp. On next app open in charging mode, this seeds the sample window
+ * so the charge rate calculates immediately instead of waiting MIN_RATE_WINDOW_MS.
+ */
+export async function updateStoredChargeState(
+  levelPct: number
+): Promise<void> {
+  const now = Date.now();
+  await AsyncStorage.multiSet([
+    [STORAGE_KEY_LAST_CHARGE_LEVEL, String(levelPct)],
+    [STORAGE_KEY_LAST_CHARGE_TIMESTAMP, String(now)],
+    [STORAGE_KEY_LAST_MODE, "charging"],
+  ]);
 }

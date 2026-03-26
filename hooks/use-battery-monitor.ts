@@ -7,8 +7,10 @@ import { saveSession } from "@/lib/session-history";
 import {
   STORAGE_KEY_LAST_LEVEL,
   STORAGE_KEY_LAST_TIMESTAMP,
-  STORAGE_KEY_LAST_DRAIN_RATE,
+  STORAGE_KEY_LAST_CHARGE_LEVEL,
+  STORAGE_KEY_LAST_CHARGE_TIMESTAMP,
   updateStoredDrainRate,
+  updateStoredChargeState,
 } from "@/lib/background-battery-task";
 
 // Warning thresholds in minutes remaining (discharge)
@@ -25,8 +27,9 @@ const SAMPLE_WINDOW = 20;
 const DISPLAY_POLL_INTERVAL = 5_000;
 
 // Minimum elapsed time (ms) before we trust the rate calculation.
-// Set to 2 minutes — short enough to be responsive, long enough to avoid noise.
-const MIN_RATE_WINDOW_MS = 2 * 60_000;
+// 30 seconds is enough to produce a usable reading. The rate naturally
+// becomes more accurate as more samples accumulate over time.
+const MIN_RATE_WINDOW_MS = 30_000; // 30 seconds
 
 // Maximum realistic drain rate (% per minute) — ~1.5%/min is very heavy use
 const MAX_DRAIN_RATE = 1.5;
@@ -75,7 +78,7 @@ function calcRatePerMin(
   if (elapsedMs < MIN_RATE_WINDOW_MS) return null;
 
   const deltaMin = elapsedMs / 60_000;
-  if (deltaMin < 0.5) return null;
+  if (deltaMin < 0.1) return null; // require at least 6 seconds of elapsed time
 
   const deltaLevel = Math.abs(newest.level - oldest.level) * 100; // in %
   if (deltaLevel < 0.01) return null; // no meaningful change
@@ -242,8 +245,12 @@ export function useBatteryMonitor(): BatteryMonitorState {
         const drainRate = calcRatePerMin(samplesRef.current, MAX_DRAIN_RATE);
         if (drainRate !== null && drainRate > 0) {
           sessionDrainSamplesRef.current.push(drainRate);
-          // Keep background task's stored rate in sync
+          // Keep background task's stored drain rate in sync
           updateStoredDrainRate(levelPct, drainRate);
+        } else {
+          // Still persist level + timestamp even before rate is ready,
+          // so the next app open can seed the sample window immediately
+          updateStoredDrainRate(levelPct, null);
         }
 
         const minutesRemaining =
@@ -316,6 +323,9 @@ export function useBatteryMonitor(): BatteryMonitorState {
           }
         }
 
+        // Persist charge level + timestamp so next app open seeds the sample window
+        updateStoredChargeState(levelPct);
+
         const elapsedMs =
           samplesRef.current.length >= 2
             ? samplesRef.current[samplesRef.current.length - 1].timestamp -
@@ -373,10 +383,13 @@ export function useBatteryMonitor(): BatteryMonitorState {
       setState((prev) => ({ ...prev, isAvailable: true }));
 
       // ── Seed the sample window with the last known reading from AsyncStorage ──
-      // This lets the drain rate calculate immediately on first open instead of
-      // waiting MIN_RATE_WINDOW_MS from scratch. The stored level/timestamp come
+      // This lets the rate calculate immediately on first open instead of
+      // waiting MIN_RATE_WINDOW_MS from scratch. The stored readings come
       // from the previous session or background task run.
+      const now = Date.now();
+
       if (batteryState === Battery.BatteryState.UNPLUGGED) {
+        // Discharging: seed from last stored discharge reading
         const [storedLevelStr, storedTimestampStr] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_LAST_LEVEL),
           AsyncStorage.getItem(STORAGE_KEY_LAST_TIMESTAMP),
@@ -384,11 +397,25 @@ export function useBatteryMonitor(): BatteryMonitorState {
         if (storedLevelStr && storedTimestampStr) {
           const storedLevel = parseFloat(storedLevelStr) / 100; // convert % back to 0–1
           const storedTimestamp = parseInt(storedTimestampStr, 10);
-          const ageMs = Date.now() - storedTimestamp;
-          // Only use stored reading if it's from the last 2 hours and level was higher
-          // (confirms the device was actually draining, not a stale or irrelevant reading)
+          const ageMs = now - storedTimestamp;
+          // Only use if within last 2 hours and level was higher (device was draining)
           if (ageMs < 2 * 60 * 60_000 && storedLevel > level) {
             samplesRef.current = [{ level: storedLevel, timestamp: storedTimestamp }];
+          }
+        }
+      } else if (batteryState === Battery.BatteryState.CHARGING) {
+        // Charging: seed from last stored charge reading
+        const [storedChargeLevelStr, storedChargeTimestampStr] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_LEVEL),
+          AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_TIMESTAMP),
+        ]);
+        if (storedChargeLevelStr && storedChargeTimestampStr) {
+          const storedChargeLevel = parseFloat(storedChargeLevelStr) / 100; // convert % back to 0–1
+          const storedChargeTimestamp = parseInt(storedChargeTimestampStr, 10);
+          const ageMs = now - storedChargeTimestamp;
+          // Only use if within last 2 hours and level was lower (device was charging up)
+          if (ageMs < 2 * 60 * 60_000 && storedChargeLevel < level) {
+            samplesRef.current = [{ level: storedChargeLevel, timestamp: storedChargeTimestamp }];
           }
         }
       }
