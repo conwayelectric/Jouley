@@ -218,7 +218,12 @@ export function useBatteryMonitor(): BatteryMonitorState {
           sessionDrainSamplesRef.current = [];
         }
 
-        samplesRef.current = [];
+        // Only wipe samples on real mode transitions (e.g. unplug → charge).
+        // Do NOT wipe when transitioning from 'unknown' (initial state on first compute)
+        // because that would destroy the seeded sample loaded from AsyncStorage.
+        if (prevMode !== "unknown") {
+          samplesRef.current = [];
+        }
         firedWarningsRef.current = new Set();
         firedMilestonesRef.current = new Set();
         prevModeRef.current = mode;
@@ -364,56 +369,61 @@ export function useBatteryMonitor(): BatteryMonitorState {
 
       setState((prev) => ({ ...prev, isAvailable: true }));
 
-      // ── Load stored rates into refs immediately ────────────────────────────
-      // These are used as instant fallback values in compute() before live
-      // samples have accumulated enough to produce a fresh rate.
+      // ── Always load BOTH stored rates on mount, regardless of current battery state ──
+      // This handles FULL, UNKNOWN, and any other state iOS may briefly report at startup.
+      // compute() will pick the correct rate based on the resolved mode.
       const now = Date.now();
 
-      if (batteryState === Battery.BatteryState.UNPLUGGED) {
-        const [storedLevelStr, storedTimestampStr, storedDrainRateStr] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEY_LAST_LEVEL),
-          AsyncStorage.getItem(STORAGE_KEY_LAST_TIMESTAMP),
-          AsyncStorage.getItem(STORAGE_KEY_LAST_DRAIN_RATE),
-        ]);
+      const [
+        storedLevelStr,
+        storedTimestampStr,
+        storedDrainRateStr,
+        storedChargeLevelStr,
+        storedChargeTimestampStr,
+        storedChargeRateStr,
+      ] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEY_LAST_LEVEL),
+        AsyncStorage.getItem(STORAGE_KEY_LAST_TIMESTAMP),
+        AsyncStorage.getItem(STORAGE_KEY_LAST_DRAIN_RATE),
+        AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_LEVEL),
+        AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_TIMESTAMP),
+        AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_RATE),
+      ]);
 
-        // Load stored drain rate into ref so compute() can use it immediately
-        if (storedDrainRateStr) {
-          const rate = parseFloat(storedDrainRateStr);
-          if (rate > 0 && rate <= MAX_DRAIN_RATE) storedDrainRateRef.current = rate;
+      // Populate drain rate ref — used immediately as fallback in compute()
+      if (storedDrainRateStr) {
+        const rate = parseFloat(storedDrainRateStr);
+        if (rate > 0 && rate <= MAX_DRAIN_RATE) storedDrainRateRef.current = rate;
+      }
+
+      // Populate charge rate ref — used immediately as fallback in compute()
+      if (storedChargeRateStr) {
+        const rate = parseFloat(storedChargeRateStr);
+        if (rate > 0 && rate <= MAX_CHARGE_RATE) storedChargeRateRef.current = rate;
+      }
+
+      // Seed sample window based on current state to help live rate warm up faster.
+      // Condition is relaxed: only require the stored reading to be fresh (< 2h),
+      // not that the level moved in the expected direction — that check was too strict
+      // and prevented seeding when level hadn't changed much yet.
+      const isDischarging = batteryState === Battery.BatteryState.UNPLUGGED;
+      const isCharging = batteryState === Battery.BatteryState.CHARGING;
+
+      if (isDischarging && storedLevelStr && storedTimestampStr) {
+        const storedLevel = parseFloat(storedLevelStr) / 100;
+        const storedTimestamp = parseInt(storedTimestampStr, 10);
+        const ageMs = now - storedTimestamp;
+        // Seed if fresh and stored level was higher (device was draining since last open)
+        if (ageMs < MAX_STORED_RATE_AGE_MS && storedLevel > level) {
+          samplesRef.current = [{ level: storedLevel, timestamp: storedTimestamp }];
         }
-
-        // Seed sample window with stored reading for live rate to warm up faster
-        if (storedLevelStr && storedTimestampStr) {
-          const storedLevel = parseFloat(storedLevelStr) / 100;
-          const storedTimestamp = parseInt(storedTimestampStr, 10);
-          const ageMs = now - storedTimestamp;
-          if (ageMs < MAX_STORED_RATE_AGE_MS && storedLevel > level) {
-            samplesRef.current = [{ level: storedLevel, timestamp: storedTimestamp }];
-          }
-        }
-
-      } else if (batteryState === Battery.BatteryState.CHARGING) {
-        const [storedChargeLevelStr, storedChargeTimestampStr, storedChargeRateStr] =
-          await Promise.all([
-            AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_LEVEL),
-            AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_TIMESTAMP),
-            AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_RATE),
-          ]);
-
-        // Load stored charge rate into ref so compute() can use it immediately
-        if (storedChargeRateStr) {
-          const rate = parseFloat(storedChargeRateStr);
-          if (rate > 0 && rate <= MAX_CHARGE_RATE) storedChargeRateRef.current = rate;
-        }
-
-        // Seed sample window with stored reading for live rate to warm up faster
-        if (storedChargeLevelStr && storedChargeTimestampStr) {
-          const storedChargeLevel = parseFloat(storedChargeLevelStr) / 100;
-          const storedChargeTimestamp = parseInt(storedChargeTimestampStr, 10);
-          const ageMs = now - storedChargeTimestamp;
-          if (ageMs < MAX_STORED_RATE_AGE_MS && storedChargeLevel < level) {
-            samplesRef.current = [{ level: storedChargeLevel, timestamp: storedChargeTimestamp }];
-          }
+      } else if (isCharging && storedChargeLevelStr && storedChargeTimestampStr) {
+        const storedChargeLevel = parseFloat(storedChargeLevelStr) / 100;
+        const storedChargeTimestamp = parseInt(storedChargeTimestampStr, 10);
+        const ageMs = now - storedChargeTimestamp;
+        // Seed if fresh and stored level was lower (device was charging since last open)
+        if (ageMs < MAX_STORED_RATE_AGE_MS && storedChargeLevel < level) {
+          samplesRef.current = [{ level: storedChargeLevel, timestamp: storedChargeTimestamp }];
         }
       }
 
