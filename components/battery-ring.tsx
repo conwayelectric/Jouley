@@ -7,7 +7,7 @@ const SIZE = 260;
 const STROKE = 18;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const ARC_RATIO = 0.75; // 270° arc
+const ARC_RATIO = 1.0; // 360° full circle — 50% = half, 100% = full
 
 // Ring colors based on battery level
 const COLOR_GREEN  = "#22C55E"; // 80–100%
@@ -65,7 +65,7 @@ export function BatteryRing({ level, mode, isCalculating }: BatteryRingProps) {
   const ringColor = getRingColor(level, mode);
   const fillRatio = (level / 100) * ARC_RATIO;
   const strokeDashoffset = CIRCUMFERENCE * (1 - fillRatio);
-  const rotation = 135; // arc starts at bottom-left gap
+  const rotation = -90; // arc starts at top (12 o'clock position)
 
   return (
     <View style={styles.container}>
