@@ -76,11 +76,6 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Image
-            source={require("@/assets/images/conway_streetlight_logo.png")}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
           <View style={styles.headerText}>
             <Text style={styles.headerTitle}>CONWAY ELECTRIC</Text>
             <Text style={styles.headerSubtitle}>POWER MONITOR · {headerSubtitle.toUpperCase()}</Text>
@@ -139,26 +134,12 @@ export default function HomeScreen() {
           mode={battery.mode}
         />
 
-        {/* Device Info Card */}
+        {/* Device Model — single line, OS/Brand details live in Settings */}
         <View style={styles.deviceCard}>
           <View style={styles.deviceRow}>
             <Text style={styles.deviceLabel}>DEVICE</Text>
             <Text style={styles.deviceValue}>
               {Device.modelName ?? Device.deviceName ?? "Unknown Device"}
-            </Text>
-          </View>
-          <View style={styles.deviceDivider} />
-          <View style={styles.deviceRow}>
-            <Text style={styles.deviceLabel}>OS</Text>
-            <Text style={styles.deviceValue}>
-              {Device.osName ?? Platform.OS.toUpperCase()} {Device.osVersion ?? ""}
-            </Text>
-          </View>
-          <View style={styles.deviceDivider} />
-          <View style={styles.deviceRow}>
-            <Text style={styles.deviceLabel}>BRAND</Text>
-            <Text style={styles.deviceValue}>
-              {Device.brand ?? Device.manufacturer ?? "Apple"}
             </Text>
           </View>
         </View>
@@ -235,25 +216,20 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 14,
-    gap: 14,
-  },
-  headerLogo: {
-    width: 44,
-    height: 44,
   },
   headerText: {
-    flex: 1,
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "900",
     color: "#FFFFFF",
     letterSpacing: 2,
+    textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 10,
@@ -261,6 +237,7 @@ const styles = StyleSheet.create({
     color: "#6B6B6B",
     letterSpacing: 1.5,
     marginTop: 2,
+    textAlign: "center",
   },
   dividerLine: {
     height: 1,

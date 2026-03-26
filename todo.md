@@ -31,3 +31,11 @@
 - [x] Include current drain rate in push notification warning body
 - [x] Flip charge milestone order: 100% on top, 10% on bottom
 - [x] Battery percentage matches phone exactly, updates every 1% in real-time (charging and discharging)
+- [x] Background monitoring every 1 minute normally, every 30 seconds when battery < 10% (NOTE: iOS enforces ~15 min minimum for background; in-app uses 15s)
+- [x] Update Settings screen description to reflect new intervals
+- [x] Remove device OS and brand from dashboard — keep only in Settings
+- [x] Predictive battery estimation algorithm in background task (estimates % between 15-min OS intervals using drain rate)
+- [x] Add background behavior explanation note to Settings screen
+- [x] Remove Conway Electric logo from dashboard header top-left, center header text
+- [x] CANCELLED: Add white outline around streetlight logo shape (not needed)
+- [x] Clarify Settings monitoring description: real-time every 15s when app is open, ~15 min OS check when closed

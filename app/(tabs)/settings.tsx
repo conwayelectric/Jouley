@@ -100,8 +100,7 @@ export default function SettingsScreen() {
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>Always-On Monitoring</Text>
               <Text style={styles.rowDesc}>
-                Monitor battery in the background even when the app is closed.
-                Sends a push notification when battery drops below 30%.
+                When the app is open or running in the background, battery is monitored in real time every 15 seconds. When the app is fully closed, the OS schedules a check approximately every 15 minutes.
               </Text>
             </View>
             <Switch
@@ -115,8 +114,10 @@ export default function SettingsScreen() {
           {alwaysOn && (
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>
-                ✅ Active — battery is monitored every ~15 minutes in the background.
-                Notifications will include drain rate and estimated time remaining.
+                ✅ Active{"\n\n"}
+                • App open or in background: real-time monitoring every 15 seconds.{"\n"}
+                • App fully closed (swiped away): OS-scheduled check every ~15 minutes. Between checks, your drain rate is used to predict battery level and fire warnings.{"\n\n"}
+                All notifications include your current drain rate and estimated time remaining.
               </Text>
             </View>
           )}
@@ -307,6 +308,18 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: 13,
     color: "#F97316",
+    lineHeight: 19,
+  },
+  tipBox: {
+    backgroundColor: "#1A1A2E",
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#3B82F633",
+  },
+  tipText: {
+    fontSize: 13,
+    color: "#93C5FD",
     lineHeight: 19,
   },
 
