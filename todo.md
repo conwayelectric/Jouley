@@ -39,3 +39,4 @@
 - [x] Remove Conway Electric logo from dashboard header top-left, center header text
 - [x] CANCELLED: Add white outline around streetlight logo shape (not needed)
 - [x] Clarify Settings monitoring description: real-time every 15s when app is open, ~15 min OS check when closed
+- [x] Update Settings wording to accurately reflect iOS background suspension (15s while active, iOS may suspend after a few minutes)

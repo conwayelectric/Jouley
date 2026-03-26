@@ -100,7 +100,7 @@ export default function SettingsScreen() {
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>Always-On Monitoring</Text>
               <Text style={styles.rowDesc}>
-                When the app is open or running in the background, battery is monitored in real time every 15 seconds. When the app is fully closed, the OS schedules a check approximately every 15 minutes.
+                Monitors battery in real time while the app is active, and uses OS-scheduled checks when the app is closed.
               </Text>
             </View>
             <Switch
@@ -115,8 +115,9 @@ export default function SettingsScreen() {
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>
                 ✅ Active{"\n\n"}
-                • App open or in background: real-time monitoring every 15 seconds.{"\n"}
-                • App fully closed (swiped away): OS-scheduled check every ~15 minutes. Between checks, your drain rate is used to predict battery level and fire warnings.{"\n\n"}
+                • App on screen: real-time monitoring every 15 seconds.{"\n"}
+                • App in background (recently switched away): every 15 seconds for a few minutes. iOS may suspend the app after a short period to conserve battery.{"\n"}
+                • App fully closed (swiped away): OS-scheduled check every ~15 minutes. Between checks, your stored drain rate is used to predict battery level and fire any missed warnings.{"\n\n"}
                 All notifications include your current drain rate and estimated time remaining.
               </Text>
             </View>
