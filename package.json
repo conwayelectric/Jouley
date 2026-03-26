@@ -37,7 +37,7 @@
     "expo-audio": "~1.1.0",
     "expo-background-fetch": "~14.0.9",
     "expo-battery": "~10.0.8",
-    "expo-brightness": "^55.0.9",
+    "expo-brightness": "^14.0.8",
     "expo-build-properties": "^1.0.10",
     "expo-constants": "~18.0.12",
     "expo-device": "~8.0.10",

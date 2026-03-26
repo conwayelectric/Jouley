@@ -63,8 +63,8 @@ importers:
         specifier: ~10.0.8
         version: 10.0.8(expo@54.0.29)(react@19.1.0)
       expo-brightness:
-        specifier: ^55.0.9
-        version: 55.0.9(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))
+        specifier: ^14.0.8
+        version: 14.0.8(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))
       expo-build-properties:
         specifier: ^1.0.10
         version: 1.0.10(expo@54.0.29)
@@ -3526,8 +3526,8 @@ packages:
       expo: '*'
       react: '*'
 
-  expo-brightness@55.0.9:
-    resolution: {integrity: sha512-8krH590weRhigUj3DX8XNkzTp8mgqevPK/2O4mJpmF7Girjy1+5KriNi/048CFx7/iNe1gWJ+K38hBsPMHsy5w==}
+  expo-brightness@14.0.8:
+    resolution: {integrity: sha512-WOg3UxzkHFTKBW3XvROlrVRmnJmZLhGBGd1RdzTfrtt2/MdSzvVmCevqWh4bohkeLABh0Yc9YRo1vFgfT73DWw==}
     peerDependencies:
       expo: '*'
       react-native: '*'
@@ -9787,7 +9787,7 @@ snapshots:
       expo: 54.0.29(@babel/core@7.28.5)(@expo/metro-runtime@6.1.2)(expo-router@6.0.19)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react: 19.1.0
 
-  expo-brightness@55.0.9(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)):
+  expo-brightness@14.0.8(expo@54.0.29)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)):
     dependencies:
       expo: 54.0.29(@babel/core@7.28.5)(@expo/metro-runtime@6.1.2)(expo-router@6.0.19)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native: 0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)
