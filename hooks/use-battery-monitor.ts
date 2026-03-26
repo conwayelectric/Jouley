@@ -7,8 +7,10 @@ import { saveSession } from "@/lib/session-history";
 import {
   STORAGE_KEY_LAST_LEVEL,
   STORAGE_KEY_LAST_TIMESTAMP,
+  STORAGE_KEY_LAST_DRAIN_RATE,
   STORAGE_KEY_LAST_CHARGE_LEVEL,
   STORAGE_KEY_LAST_CHARGE_TIMESTAMP,
+  STORAGE_KEY_LAST_CHARGE_RATE,
   updateStoredDrainRate,
   updateStoredChargeState,
 } from "@/lib/background-battery-task";
@@ -22,26 +24,27 @@ const CHARGE_MILESTONES = [10, 25, 50, 75, 100];
 // How many samples to keep for rate calculation
 const SAMPLE_WINDOW = 20;
 
-// Display refresh interval (5 seconds) — keeps displayed % in sync with phone.
-// iOS addBatteryLevelListener fires at most once/min, so we poll frequently to catch changes fast.
+// Display refresh interval (5 seconds)
 const DISPLAY_POLL_INTERVAL = 5_000;
 
-// Minimum elapsed time (ms) before we trust the rate calculation.
-// 30 seconds is enough to produce a usable reading. The rate naturally
-// becomes more accurate as more samples accumulate over time.
-const MIN_RATE_WINDOW_MS = 30_000; // 30 seconds
+// Minimum elapsed time (ms) between oldest and newest sample before we trust
+// the live-calculated rate. 30 seconds is enough for a usable reading.
+const MIN_RATE_WINDOW_MS = 30_000;
 
-// Maximum realistic drain rate (% per minute) — ~1.5%/min is very heavy use
+// Maximum realistic drain rate (% per minute)
 const MAX_DRAIN_RATE = 1.5;
 
-// Maximum realistic charge rate (% per minute) — ~1.2%/min is fast charging
+// Maximum realistic charge rate (% per minute)
 const MAX_CHARGE_RATE = 1.2;
+
+// Max age of a stored rate before we consider it stale (2 hours)
+const MAX_STORED_RATE_AGE_MS = 2 * 60 * 60_000;
 
 export type BatteryMode = "discharging" | "charging" | "full" | "unknown";
 
 export interface BatterySample {
-  level: number; // 0–1 (raw from OS)
-  timestamp: number; // ms
+  level: number;    // 0–1 raw from OS
+  timestamp: number;
 }
 
 export interface MilestoneETA {
@@ -51,7 +54,7 @@ export interface MilestoneETA {
 }
 
 export interface BatteryMonitorState {
-  level: number;        // exact integer % from OS — never estimated
+  level: number;              // exact integer % from OS — never estimated
   mode: BatteryMode;
   // Discharge
   drainRatePerMin: number | null;
@@ -63,7 +66,8 @@ export interface BatteryMonitorState {
   milestones: MilestoneETA[];
   // Meta
   isAvailable: boolean;
-  isCalculating: boolean;
+  isCalculating: boolean;   // true only on very first ever launch with zero stored data
+  isRateEstimated: boolean; // true when showing stored rate, false when live samples confirm it
 }
 
 function calcRatePerMin(
@@ -78,13 +82,12 @@ function calcRatePerMin(
   if (elapsedMs < MIN_RATE_WINDOW_MS) return null;
 
   const deltaMin = elapsedMs / 60_000;
-  if (deltaMin < 0.1) return null; // require at least 6 seconds of elapsed time
+  if (deltaMin < 0.1) return null;
 
-  const deltaLevel = Math.abs(newest.level - oldest.level) * 100; // in %
-  if (deltaLevel < 0.01) return null; // no meaningful change
+  const deltaLevel = Math.abs(newest.level - oldest.level) * 100;
+  if (deltaLevel < 0.01) return null;
 
-  const rate = deltaLevel / deltaMin;
-  return Math.min(rate, maxRate);
+  return Math.min(deltaLevel / deltaMin, maxRate);
 }
 
 function buildMilestones(
@@ -92,14 +95,10 @@ function buildMilestones(
   chargeRatePerMin: number | null
 ): MilestoneETA[] {
   return CHARGE_MILESTONES.map((pct) => {
-    if (currentLevel >= pct) {
-      return { percent: pct, minutesAway: null, reached: true };
-    }
-    if (!chargeRatePerMin || chargeRatePerMin <= 0) {
+    if (currentLevel >= pct) return { percent: pct, minutesAway: null, reached: true };
+    if (!chargeRatePerMin || chargeRatePerMin <= 0)
       return { percent: pct, minutesAway: null, reached: false };
-    }
-    const minutesAway = (pct - currentLevel) / chargeRatePerMin;
-    return { percent: pct, minutesAway, reached: false };
+    return { percent: pct, minutesAway: (pct - currentLevel) / chargeRatePerMin, reached: false };
   });
 }
 
@@ -113,17 +112,13 @@ async function requestNotificationPermission(): Promise<boolean> {
 
 async function sendWarningNotification(minutesLeft: number, drainRatePerMin: number | null) {
   const urgency = minutesLeft <= 5 ? "🔴" : minutesLeft <= 10 ? "🟠" : "⚠️";
-  const rateStr = drainRatePerMin
-    ? ` Drain rate: ${drainRatePerMin.toFixed(2)}%/min.`
-    : "";
-  const body =
-    minutesLeft <= 2
-      ? `Battery critically low — plug in immediately!${rateStr}`
-      : `${minutesLeft} min of battery remaining — plug in soon.${rateStr}`;
+  const rateStr = drainRatePerMin ? ` Drain rate: ${drainRatePerMin.toFixed(2)}%/min.` : "";
   await Notifications.scheduleNotificationAsync({
     content: {
       title: `${urgency} Battery Warning — ${minutesLeft} min left`,
-      body,
+      body: minutesLeft <= 2
+        ? `Battery critically low — plug in immediately!${rateStr}`
+        : `${minutesLeft} min of battery remaining — plug in soon.${rateStr}`,
       sound: "battery-alert.wav",
     },
     trigger: null,
@@ -131,14 +126,10 @@ async function sendWarningNotification(minutesLeft: number, drainRatePerMin: num
 }
 
 async function sendMilestoneNotification(percent: number) {
-  const emoji = percent === 100 ? "🎉" : "⚡";
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: `${emoji} Conway Electric Power Monitor`,
-      body:
-        percent === 100
-          ? "Battery fully charged!"
-          : `Battery has reached ${percent}% charge.`,
+      title: `${percent === 100 ? "🎉" : "⚡"} Conway Electric Power Monitor`,
+      body: percent === 100 ? "Battery fully charged!" : `Battery has reached ${percent}% charge.`,
       sound: "battery-alert.wav",
     },
     trigger: null,
@@ -154,13 +145,10 @@ export function useBatteryMonitor(): BatteryMonitorState {
     activeWarning: null,
     chargeRatePerMin: null,
     minutesToFull: null,
-    milestones: CHARGE_MILESTONES.map((p) => ({
-      percent: p,
-      minutesAway: null,
-      reached: false,
-    })),
+    milestones: CHARGE_MILESTONES.map((p) => ({ percent: p, minutesAway: null, reached: false })),
     isAvailable: false,
     isCalculating: true,
+    isRateEstimated: false,
   });
 
   const samplesRef = useRef<BatterySample[]>([]);
@@ -174,14 +162,20 @@ export function useBatteryMonitor(): BatteryMonitorState {
   const sessionStartTimeRef = useRef<number | null>(null);
   const sessionDrainSamplesRef = useRef<number[]>([]);
 
+  // Stored fallback rates — loaded from AsyncStorage on mount, used until live samples are ready
+  const storedDrainRateRef = useRef<number | null>(null);
+  const storedChargeRateRef = useRef<number | null>(null);
+
   const addSample = useCallback((level: number) => {
-    const sample: BatterySample = { level, timestamp: Date.now() };
-    samplesRef.current = [...samplesRef.current.slice(-SAMPLE_WINDOW + 1), sample];
+    samplesRef.current = [
+      ...samplesRef.current.slice(-SAMPLE_WINDOW + 1),
+      { level, timestamp: Date.now() },
+    ];
   }, []);
 
   const compute = useCallback(
     async (level: number, batteryState: Battery.BatteryState) => {
-      // ── Level display: always the exact integer % from the OS, never estimated ──
+      // Level display: always the exact integer % from the OS, never estimated
       const levelPct = Math.round(level * 100);
 
       let mode: BatteryMode = "unknown";
@@ -192,7 +186,6 @@ export function useBatteryMonitor(): BatteryMonitorState {
       // Handle mode transitions
       if (mode !== prevModeRef.current) {
         const prevMode = prevModeRef.current;
-
         if (
           prevMode === "discharging" &&
           (mode === "charging" || mode === "full") &&
@@ -201,20 +194,18 @@ export function useBatteryMonitor(): BatteryMonitorState {
         ) {
           const endTime = Date.now();
           const durationMs = endTime - sessionStartTimeRef.current;
-          const durationMinutes = Math.max(1, Math.round(durationMs / 60_000));
           const rates = sessionDrainSamplesRef.current.filter((r) => r > 0);
-          const avgDrainRate =
-            rates.length > 0
-              ? rates.reduce((a, b) => a + b, 0) / rates.length
-              : 0;
           saveSession({
             id: `${endTime}`,
             startLevel: sessionStartLevelRef.current,
             endLevel: levelPct,
             startTime: sessionStartTimeRef.current,
             endTime,
-            durationMinutes,
-            avgDrainRatePerMin: Math.round(avgDrainRate * 100) / 100,
+            durationMinutes: Math.max(1, Math.round(durationMs / 60_000)),
+            avgDrainRatePerMin:
+              rates.length > 0
+                ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100) / 100
+                : 0,
           });
           sessionStartLevelRef.current = null;
           sessionStartTimeRef.current = null;
@@ -242,14 +233,16 @@ export function useBatteryMonitor(): BatteryMonitorState {
       addSample(level);
 
       if (mode === "discharging") {
-        const drainRate = calcRatePerMin(samplesRef.current, MAX_DRAIN_RATE);
-        if (drainRate !== null && drainRate > 0) {
-          sessionDrainSamplesRef.current.push(drainRate);
-          // Keep background task's stored drain rate in sync
-          updateStoredDrainRate(levelPct, drainRate);
+        // Try live calculation first; fall back to stored rate if live isn't ready yet
+        const liveRate = calcRatePerMin(samplesRef.current, MAX_DRAIN_RATE);
+        const drainRate = liveRate ?? storedDrainRateRef.current;
+        const isRateEstimated = liveRate === null && drainRate !== null;
+
+        if (liveRate !== null && liveRate > 0) {
+          sessionDrainSamplesRef.current.push(liveRate);
+          storedDrainRateRef.current = liveRate; // keep ref in sync
+          updateStoredDrainRate(levelPct, liveRate);
         } else {
-          // Still persist level + timestamp even before rate is ready,
-          // so the next app open can seed the sample window immediately
           updateStoredDrainRate(levelPct, null);
         }
 
@@ -260,10 +253,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
         let activeWarning: number | null = null;
         if (minutesRemaining !== null && notifPermRef.current) {
           for (const threshold of DISCHARGE_WARNINGS) {
-            if (
-              minutesRemaining <= threshold &&
-              !firedWarningsRef.current.has(threshold)
-            ) {
+            if (minutesRemaining <= threshold && !firedWarningsRef.current.has(threshold)) {
               firedWarningsRef.current.add(threshold);
               sendWarningNotification(threshold, drainRate);
               activeWarning = threshold;
@@ -272,22 +262,13 @@ export function useBatteryMonitor(): BatteryMonitorState {
           }
           if (activeWarning === null) {
             for (const threshold of [...DISCHARGE_WARNINGS].reverse()) {
-              if (
-                minutesRemaining <= threshold &&
-                firedWarningsRef.current.has(threshold)
-              ) {
+              if (minutesRemaining <= threshold && firedWarningsRef.current.has(threshold)) {
                 activeWarning = threshold;
                 break;
               }
             }
           }
         }
-
-        const elapsedMs =
-          samplesRef.current.length >= 2
-            ? samplesRef.current[samplesRef.current.length - 1].timestamp -
-              samplesRef.current[0].timestamp
-            : 0;
 
         setState((prev) => ({
           ...prev,
@@ -298,20 +279,26 @@ export function useBatteryMonitor(): BatteryMonitorState {
           activeWarning,
           chargeRatePerMin: null,
           minutesToFull: null,
-          milestones: CHARGE_MILESTONES.map((p) => ({
-            percent: p,
-            minutesAway: null,
-            reached: false,
-          })),
-          isCalculating: elapsedMs < MIN_RATE_WINDOW_MS,
+          milestones: CHARGE_MILESTONES.map((p) => ({ percent: p, minutesAway: null, reached: false })),
+          // isCalculating only true if we have absolutely no rate at all
+          isCalculating: drainRate === null,
+          isRateEstimated: isRateEstimated ?? false,
         }));
+
       } else if (mode === "charging" || mode === "full") {
-        const chargeRate =
-          mode === "full" ? null : calcRatePerMin(samplesRef.current, MAX_CHARGE_RATE);
+        const liveRate = mode === "full" ? null : calcRatePerMin(samplesRef.current, MAX_CHARGE_RATE);
+        const chargeRate = liveRate ?? (mode === "full" ? null : storedChargeRateRef.current);
+        const isRateEstimated = liveRate === null && chargeRate !== null;
+
+        if (liveRate !== null && liveRate > 0) {
+          storedChargeRateRef.current = liveRate;
+          updateStoredChargeState(levelPct, liveRate);
+        } else {
+          updateStoredChargeState(levelPct, null);
+        }
+
         const minutesToFull =
-          chargeRate && chargeRate > 0
-            ? Math.ceil((100 - levelPct) / chargeRate)
-            : null;
+          chargeRate && chargeRate > 0 ? Math.ceil((100 - levelPct) / chargeRate) : null;
         const milestones = buildMilestones(levelPct, chargeRate ?? null);
 
         if (notifPermRef.current) {
@@ -323,15 +310,6 @@ export function useBatteryMonitor(): BatteryMonitorState {
           }
         }
 
-        // Persist charge level + timestamp so next app open seeds the sample window
-        updateStoredChargeState(levelPct);
-
-        const elapsedMs =
-          samplesRef.current.length >= 2
-            ? samplesRef.current[samplesRef.current.length - 1].timestamp -
-              samplesRef.current[0].timestamp
-            : 0;
-
         setState((prev) => ({
           ...prev,
           level: levelPct,
@@ -342,14 +320,18 @@ export function useBatteryMonitor(): BatteryMonitorState {
           chargeRatePerMin: chargeRate,
           minutesToFull,
           milestones,
-          isCalculating: mode === "charging" && elapsedMs < MIN_RATE_WINDOW_MS,
+          // isCalculating only true if we have absolutely no rate at all (and not full)
+          isCalculating: mode === "charging" && chargeRate === null,
+          isRateEstimated: isRateEstimated ?? false,
         }));
+
       } else {
         setState((prev) => ({
           ...prev,
           level: levelPct,
           mode,
           isCalculating: false,
+          isRateEstimated: false,
         }));
       }
     },
@@ -382,47 +364,63 @@ export function useBatteryMonitor(): BatteryMonitorState {
 
       setState((prev) => ({ ...prev, isAvailable: true }));
 
-      // ── Seed the sample window with the last known reading from AsyncStorage ──
-      // This lets the rate calculate immediately on first open instead of
-      // waiting MIN_RATE_WINDOW_MS from scratch. The stored readings come
-      // from the previous session or background task run.
+      // ── Load stored rates into refs immediately ────────────────────────────
+      // These are used as instant fallback values in compute() before live
+      // samples have accumulated enough to produce a fresh rate.
       const now = Date.now();
 
       if (batteryState === Battery.BatteryState.UNPLUGGED) {
-        // Discharging: seed from last stored discharge reading
-        const [storedLevelStr, storedTimestampStr] = await Promise.all([
+        const [storedLevelStr, storedTimestampStr, storedDrainRateStr] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_LAST_LEVEL),
           AsyncStorage.getItem(STORAGE_KEY_LAST_TIMESTAMP),
+          AsyncStorage.getItem(STORAGE_KEY_LAST_DRAIN_RATE),
         ]);
+
+        // Load stored drain rate into ref so compute() can use it immediately
+        if (storedDrainRateStr) {
+          const rate = parseFloat(storedDrainRateStr);
+          if (rate > 0 && rate <= MAX_DRAIN_RATE) storedDrainRateRef.current = rate;
+        }
+
+        // Seed sample window with stored reading for live rate to warm up faster
         if (storedLevelStr && storedTimestampStr) {
-          const storedLevel = parseFloat(storedLevelStr) / 100; // convert % back to 0–1
+          const storedLevel = parseFloat(storedLevelStr) / 100;
           const storedTimestamp = parseInt(storedTimestampStr, 10);
           const ageMs = now - storedTimestamp;
-          // Only use if within last 2 hours and level was higher (device was draining)
-          if (ageMs < 2 * 60 * 60_000 && storedLevel > level) {
+          if (ageMs < MAX_STORED_RATE_AGE_MS && storedLevel > level) {
             samplesRef.current = [{ level: storedLevel, timestamp: storedTimestamp }];
           }
         }
+
       } else if (batteryState === Battery.BatteryState.CHARGING) {
-        // Charging: seed from last stored charge reading
-        const [storedChargeLevelStr, storedChargeTimestampStr] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_LEVEL),
-          AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_TIMESTAMP),
-        ]);
+        const [storedChargeLevelStr, storedChargeTimestampStr, storedChargeRateStr] =
+          await Promise.all([
+            AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_LEVEL),
+            AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_TIMESTAMP),
+            AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_RATE),
+          ]);
+
+        // Load stored charge rate into ref so compute() can use it immediately
+        if (storedChargeRateStr) {
+          const rate = parseFloat(storedChargeRateStr);
+          if (rate > 0 && rate <= MAX_CHARGE_RATE) storedChargeRateRef.current = rate;
+        }
+
+        // Seed sample window with stored reading for live rate to warm up faster
         if (storedChargeLevelStr && storedChargeTimestampStr) {
-          const storedChargeLevel = parseFloat(storedChargeLevelStr) / 100; // convert % back to 0–1
+          const storedChargeLevel = parseFloat(storedChargeLevelStr) / 100;
           const storedChargeTimestamp = parseInt(storedChargeTimestampStr, 10);
           const ageMs = now - storedChargeTimestamp;
-          // Only use if within last 2 hours and level was lower (device was charging up)
-          if (ageMs < 2 * 60 * 60_000 && storedChargeLevel < level) {
+          if (ageMs < MAX_STORED_RATE_AGE_MS && storedChargeLevel < level) {
             samplesRef.current = [{ level: storedChargeLevel, timestamp: storedChargeTimestamp }];
           }
         }
       }
 
+      // First compute — will immediately show stored rate if available
       await compute(level, batteryState);
 
-      // Listen for level changes (iOS fires at most once/min, so we also poll below)
+      // Listen for level changes (iOS fires at most once/min)
       levelSub = Battery.addBatteryLevelListener(async ({ batteryLevel }) => {
         const currentState = await Battery.getBatteryStateAsync();
         await compute(batteryLevel, currentState);
@@ -434,7 +432,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
         await compute(currentLevel, newState);
       });
 
-      // Poll every 5s — ensures the display stays in sync regardless of listener throttling
+      // Poll every 5s — keeps display in sync and refines rate continuously
       displayTimer = setInterval(async () => {
         const [lvl, bState] = await Promise.all([
           Battery.getBatteryLevelAsync(),

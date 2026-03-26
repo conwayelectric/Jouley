@@ -112,6 +112,7 @@ export default function HomeScreen() {
         {/* Time Remaining / Time to Full Card */}
         <View style={styles.timeCard}>
           {battery.isCalculating ? (
+            // Only shown on very first ever launch with zero stored data
             <>
               <Text style={styles.timeValue}>Calculating...</Text>
               <Text style={styles.timeSubtext}>
@@ -130,10 +131,10 @@ export default function HomeScreen() {
               <Text style={styles.timeSubtext}>
                 {isCharging
                   ? battery.chargeRatePerMin
-                    ? `Charging at +${battery.chargeRatePerMin.toFixed(2)}% per minute`
+                    ? `${battery.isRateEstimated ? "~" : ""}Charging at +${battery.chargeRatePerMin.toFixed(2)}% per minute${battery.isRateEstimated ? " (refining..." : ""}${battery.isRateEstimated ? ")" : ""}`
                     : "Measuring charge rate..."
                   : battery.drainRatePerMin
-                  ? `Draining at ${battery.drainRatePerMin.toFixed(2)}% per minute`
+                  ? `${battery.isRateEstimated ? "~" : ""}Draining at ${battery.drainRatePerMin.toFixed(2)}% per minute${battery.isRateEstimated ? " (refining...)" : ""}`
                   : "Measuring drain rate..."}
               </Text>
             </>
@@ -202,7 +203,7 @@ export default function HomeScreen() {
         )}
 
         {/* Discharge info card */}
-        {!isCharging && !battery.isCalculating && battery.minutesRemaining !== null && battery.minutesRemaining > 20 && (
+        {!isCharging && battery.minutesRemaining !== null && battery.minutesRemaining > 20 && (
           <View style={styles.infoCard}>
             <Text style={styles.infoCardTitle}>BATTERY STATUS</Text>
             <Text style={styles.infoCardText}>

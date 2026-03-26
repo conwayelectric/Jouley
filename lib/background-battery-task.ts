@@ -36,6 +36,7 @@ export const STORAGE_KEY_LAST_DRAIN_RATE = "conway_last_drain_rate";
 export const STORAGE_KEY_LAST_MODE = "conway_last_battery_mode"; // "discharging" | "charging"
 export const STORAGE_KEY_LAST_CHARGE_LEVEL = "conway_last_charge_level";
 export const STORAGE_KEY_LAST_CHARGE_TIMESTAMP = "conway_last_charge_timestamp";
+export const STORAGE_KEY_LAST_CHARGE_RATE = "conway_last_charge_rate";
 export const STORAGE_KEY_FIRED_WARNINGS = "conway_fired_warnings"; // JSON array of fired thresholds
 export const STORAGE_KEY_FIRST_LAUNCH = "conway_first_launch_done";
 export const STORAGE_KEY_LAST_BACKGROUND_CHECK = "conway_last_background_check";
@@ -261,12 +262,16 @@ export async function updateStoredDrainRate(
  * so the charge rate calculates immediately instead of waiting MIN_RATE_WINDOW_MS.
  */
 export async function updateStoredChargeState(
-  levelPct: number
+  levelPct: number,
+  chargeRatePerMin: number | null = null
 ): Promise<void> {
   const now = Date.now();
   await AsyncStorage.multiSet([
     [STORAGE_KEY_LAST_CHARGE_LEVEL, String(levelPct)],
     [STORAGE_KEY_LAST_CHARGE_TIMESTAMP, String(now)],
     [STORAGE_KEY_LAST_MODE, "charging"],
+    ...(chargeRatePerMin !== null
+      ? [[STORAGE_KEY_LAST_CHARGE_RATE, String(chargeRatePerMin)] as [string, string]]
+      : []),
   ]);
 }
