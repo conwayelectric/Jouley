@@ -16,6 +16,7 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import {
   STORAGE_KEY_ALWAYS_ON,
+  STORAGE_KEY_LAST_BACKGROUND_CHECK,
   registerBackgroundBatteryTask,
   unregisterBackgroundBatteryTask,
 } from "@/lib/background-battery-task";
@@ -24,15 +25,25 @@ export default function SettingsScreen() {
   const [alwaysOn, setAlwaysOn] = useState(true);
   const [notifGranted, setNotifGranted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastChecked, setLastChecked] = useState<string | null>(null);
 
   const loadSettings = useCallback(async () => {
-    const [stored, { status }] = await Promise.all([
+    const [stored, { status }, lastCheckTs] = await Promise.all([
       AsyncStorage.getItem(STORAGE_KEY_ALWAYS_ON),
       Notifications.getPermissionsAsync(),
+      AsyncStorage.getItem(STORAGE_KEY_LAST_BACKGROUND_CHECK),
     ]);
     // Default to true if never set
     setAlwaysOn(stored === null ? true : stored !== "false");
     setNotifGranted(status === "granted");
+    if (lastCheckTs) {
+      const d = new Date(parseInt(lastCheckTs, 10));
+      setLastChecked(
+        d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) +
+        " at " +
+        d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+      );
+    }
     setLoading(false);
   }, []);
 
@@ -181,6 +192,27 @@ export default function SettingsScreen() {
             Each notification includes the current drain rate so you know how
             fast your battery is being used.
           </Text>
+        </View>
+
+        {/* Monitoring Status */}
+        <Text style={styles.sectionLabel}>MONITORING STATUS</Text>
+        <View style={styles.card}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Last Background Check</Text>
+            <Text style={styles.infoValue}>
+              {lastChecked ?? "Not yet run"}
+            </Text>
+          </View>
+          <View style={styles.infoDivider} />
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Check Interval</Text>
+            <Text style={styles.infoValue}>~15 min (OS scheduled)</Text>
+          </View>
+          <View style={styles.infoDivider} />
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Active Monitoring</Text>
+            <Text style={styles.infoValue}>Every 15 sec (app open)</Text>
+          </View>
         </View>
 
         {/* Device Info */}

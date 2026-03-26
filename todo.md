@@ -42,3 +42,5 @@
 - [x] Update Settings wording to accurately reflect iOS background suspension (15s while active, iOS may suspend after a few minutes)
 - [x] Fix ring arc: 50% battery = exactly half circle filled, 100% = full circle
 - [x] Restore 270° arc, fix fill so 50% = halfway through arc, 100% = full arc
+- [x] Add "Last Checked" timestamp to Settings showing when background task last ran
+- [x] Add charging speed label (Slow / Standard / Fast) to dashboard when charging

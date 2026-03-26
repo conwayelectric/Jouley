@@ -35,6 +35,7 @@ export const STORAGE_KEY_LAST_TIMESTAMP = "conway_last_battery_timestamp";
 export const STORAGE_KEY_LAST_DRAIN_RATE = "conway_last_drain_rate";
 export const STORAGE_KEY_FIRED_WARNINGS = "conway_fired_warnings"; // JSON array of fired thresholds
 export const STORAGE_KEY_FIRST_LAUNCH = "conway_first_launch_done";
+export const STORAGE_KEY_LAST_BACKGROUND_CHECK = "conway_last_background_check";
 
 // Low battery threshold for background alert
 const LOW_BATTERY_THRESHOLD = 30;
@@ -185,6 +186,7 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
     // ── Save state for next background run ────────────────────────────────
     await AsyncStorage.setItem(STORAGE_KEY_LAST_LEVEL, String(levelPct));
     await AsyncStorage.setItem(STORAGE_KEY_LAST_TIMESTAMP, String(now));
+    await AsyncStorage.setItem(STORAGE_KEY_LAST_BACKGROUND_CHECK, String(now));
     await AsyncStorage.setItem(
       STORAGE_KEY_FIRED_WARNINGS,
       JSON.stringify(firedWarnings)

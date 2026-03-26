@@ -125,6 +125,26 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {/* Charging Speed Label */}
+        {isCharging && battery.mode !== "full" && battery.chargeRatePerMin !== null && (
+          <View style={styles.speedBadge}>
+            <Text style={styles.speedText}>
+              {battery.chargeRatePerMin >= 0.5
+                ? battery.chargeRatePerMin >= 1.0
+                  ? "⚡ Fast Charging"
+                  : "⚡ Standard Charging"
+                : "🐢 Slow Charging"}
+            </Text>
+            <Text style={styles.speedSub}>
+              {battery.chargeRatePerMin >= 0.5
+                ? battery.chargeRatePerMin >= 1.0
+                  ? "Approx. 20W+"
+                  : "Approx. 12W"
+                : "Approx. 5W or less"}
+            </Text>
+          </View>
+        )}
+
         {/* Stats Row */}
         <StatsRow
           level={battery.level}
@@ -411,5 +431,31 @@ const styles = StyleSheet.create({
     textAlign: "right",
     flex: 1,
     marginLeft: 16,
+  },
+
+  // Charging speed badge
+  speedBadge: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: "#1A1A1A",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#2E4A6E",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    gap: 4,
+  },
+  speedText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#5B8DB8",
+    letterSpacing: 0.5,
+  },
+  speedSub: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#6B6B6B",
+    letterSpacing: 1,
   },
 });
