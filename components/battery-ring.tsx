@@ -92,7 +92,6 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             strokeWidth={STROKE}
             fill="none"
             strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
-            strokeDashoffset={0}
             strokeLinecap="round"
             transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
           />

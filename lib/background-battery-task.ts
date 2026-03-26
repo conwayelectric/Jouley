@@ -151,9 +151,9 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
               content: {
                 title: `⚡ ${threshold} Minutes of Battery Remaining`,
                 body: `Estimated ${threshold} min left (${estimatedLevel.toFixed(0)}%). Drain rate: ${drainRatePerMin.toFixed(2)}%/min. Plug in soon!`,
-                sound: true,
+                sound: "battery-alert.wav",
               },
-              trigger: null,
+              trigger: null, // fire immediately
             });
           }
         }
@@ -177,7 +177,7 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
         content: {
           title: `🔴 Low Battery — ${levelPct}% remaining`,
           body: `Your battery is running low.${minutesStr} Plug in soon.${rateStr}`,
-          sound: true,
+          sound: "battery-alert.wav",
         },
         trigger: null,
       });

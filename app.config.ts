@@ -86,12 +86,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
-    [
-      "expo-background-fetch",
-      {
-        "UIBackgroundModes": ["fetch", "processing"]
-      }
-    ],
+    "expo-background-fetch",
     [
       "expo-audio",
       {
@@ -122,7 +117,7 @@ const config: ExpoConfig = {
       {
         icon: "./assets/images/icon.png",
         color: "#E8450A",
-        sounds: [],
+        sounds: ["./assets/sounds/battery-alert.wav"],
         iosDisplayInForeground: true,
       },
     ],
