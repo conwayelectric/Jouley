@@ -4,6 +4,7 @@ import * as Battery from "expo-battery";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { saveSession } from "@/lib/session-history";
+import { estimateInitialDrainRate } from "@/hooks/use-thermal-state";
 import {
   STORAGE_KEY_LAST_LEVEL,
   STORAGE_KEY_LAST_TIMESTAMP,
@@ -394,6 +395,13 @@ export function useBatteryMonitor(): BatteryMonitorState {
       if (storedDrainRateStr) {
         const rate = parseFloat(storedDrainRateStr);
         if (rate > 0 && rate <= MAX_DRAIN_RATE) storedDrainRateRef.current = rate;
+      } else if (batteryState === Battery.BatteryState.UNPLUGGED) {
+        // No stored rate at all (first ever launch) — generate an instant estimate
+        // from device model, brightness, and Low Power Mode so the display is
+        // never blank. This estimate is clearly marked with isRateEstimated = true.
+        const isLPM = await Battery.isLowPowerModeEnabledAsync().catch(() => false);
+        const estimated = await estimateInitialDrainRate(isLPM);
+        if (estimated > 0) storedDrainRateRef.current = estimated;
       }
 
       // Populate charge rate ref — used immediately as fallback in compute()

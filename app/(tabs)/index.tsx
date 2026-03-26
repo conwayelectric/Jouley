@@ -15,9 +15,11 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import * as Battery from "expo-battery";
 import { useBatteryMonitor } from "@/hooks/use-battery-monitor";
+import { useThermalState } from "@/hooks/use-thermal-state";
 import { BatteryRing } from "@/components/battery-ring";
 import { ChargingMilestones } from "@/components/charging-milestones";
 import { StatsRow } from "@/components/stats-row";
+import { ThermalGauge } from "@/components/thermal-gauge";
 
 // Notifications only appear as native pop-ups when the app is backgrounded or closed.
 // When the app is open, the dashboard shows live minutes remaining instead.
@@ -43,6 +45,10 @@ function formatTime(minutes: number | null): string {
 export default function HomeScreen() {
   const battery = useBatteryMonitor();
   const [isLowPowerMode, setIsLowPowerMode] = useState(false);
+  const thermal = useThermalState(
+    battery.mode === "discharging" ? battery.drainRatePerMin : null,
+    isLowPowerMode
+  );
 
   // Detect Low Power Mode
   useEffect(() => {
@@ -200,6 +206,15 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
+        )}
+
+        {/* Thermal Gauge — shown when discharging and rate is available */}
+        {!isCharging && (
+          <ThermalGauge
+            value={thermal.score}
+            zone={thermal.zone}
+            label={thermal.detail}
+          />
         )}
 
         {/* Discharge info card */}

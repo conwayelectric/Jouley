@@ -50,3 +50,6 @@
 - [x] Custom notification sound (battery-alert.wav) for battery warning alerts
 - [x] Fix ring arc fill math — 55% must be just past center of 270° arc, 100% = full arc
 - [x] Add "Open Battery Settings" shortcut button on dashboard to open iOS Low Power Mode toggle
+- [x] Thermal gauge — automotive rectangular bar below drain rate on dashboard
+- [x] Instant drain rate estimate on first launch using device model, brightness, Low Power Mode
+- [x] Wire useThermalState hook into dashboard with real-time 10s updates
