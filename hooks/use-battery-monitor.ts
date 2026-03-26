@@ -13,11 +13,9 @@ const CHARGE_MILESTONES = [10, 25, 50, 75, 100];
 // How many samples to keep for rate calculation
 const SAMPLE_WINDOW = 20;
 
-// Polling interval in ms (60 seconds — longer interval gives more accurate rate)
-const POLL_INTERVAL = 60_000;
-
-// Fast display refresh interval (15 seconds) — keeps displayed % in sync with phone
-const DISPLAY_POLL_INTERVAL = 15_000;
+// Display refresh interval (5 seconds) — keeps displayed % in sync with phone.
+// iOS addBatteryLevelListener fires at most once/min, so we poll frequently to catch changes fast.
+const DISPLAY_POLL_INTERVAL = 5_000;
 
 // Minimum elapsed time (ms) before we trust the rate calculation
 const MIN_RATE_WINDOW_MS = 5 * 60_000; // 5 minutes
@@ -339,7 +337,6 @@ export function useBatteryMonitor(): BatteryMonitorState {
 
     let levelSub: Battery.Subscription | undefined;
     let stateSub: Battery.Subscription | undefined;
-    let pollTimer: ReturnType<typeof setInterval> | undefined;
     let displayTimer: ReturnType<typeof setInterval> | undefined;
 
     (async () => {
@@ -371,38 +368,23 @@ export function useBatteryMonitor(): BatteryMonitorState {
         await compute(currentLevel, newState);
       });
 
-      // Fast display poll: refresh the displayed % every 15s so it stays in sync with the phone
+      // Fast display poll: refresh every 5s so the UI stays in sync with the real device level.
+      // iOS addBatteryLevelListener fires at most once per minute, so we cannot rely on it alone.
+      // We call the full compute() here so level, mode, and all derived state update together.
       displayTimer = setInterval(async () => {
         const [lvl, bState] = await Promise.all([
           Battery.getBatteryLevelAsync(),
           Battery.getBatteryStateAsync(),
         ]);
-        // Update level display immediately without waiting for rate window
-        const levelPct = Math.round(lvl * 100);
-        setState((prev) => (prev.level !== levelPct ? { ...prev, level: levelPct } : prev));
-        // Also update mode in case plug state changed
-        let mode: BatteryMode = "unknown";
-        if (bState === Battery.BatteryState.CHARGING) mode = "charging";
-        else if (bState === Battery.BatteryState.FULL) mode = "full";
-        else if (bState === Battery.BatteryState.UNPLUGGED) mode = "discharging";
-        setState((prev) => (prev.mode !== mode ? { ...prev, mode } : prev));
+        await compute(lvl, bState);
       }, DISPLAY_POLL_INTERVAL);
 
-      // Slower rate-calculation poll (60s) for accurate drain/charge rate
-      pollTimer = setInterval(async () => {
-        const [lvl, bState] = await Promise.all([
-          Battery.getBatteryLevelAsync(),
-          Battery.getBatteryStateAsync(),
-        ]);
-        await compute(lvl, bState);
-      }, POLL_INTERVAL);
     })();
 
     return () => {
       levelSub?.remove();
       stateSub?.remove();
       if (displayTimer) clearInterval(displayTimer);
-      if (pollTimer) clearInterval(pollTimer);
     };
   }, [compute]);
 
