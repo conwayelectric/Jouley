@@ -14,3 +14,4 @@
 - [x] Request notification permissions on app launch
 - [x] Polish UI: animations, transitions, dark theme, Conway Electric branding
 - [x] Save checkpoint
+- [x] Update ring color thresholds: green (80-100%), orange (50-79%), yellow (21-49%), red (0-20%)

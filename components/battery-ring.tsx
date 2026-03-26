@@ -9,20 +9,19 @@ const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const ARC_RATIO = 0.75; // 270° arc
 
-// Conway Electric brand colors
-const COLOR_HEALTHY = "#22C55E";
-const COLOR_WARNING = "#F59E0B";
-const COLOR_CRITICAL = "#E8450A";
-const COLOR_CHARGING = "#5B8DB8";
-const COLOR_FULL = "#22C55E";
-const COLOR_TRACK = "#2E2E2E";
+// Ring colors based on battery level
+const COLOR_GREEN  = "#22C55E"; // 80–100%
+const COLOR_ORANGE = "#F97316"; // 50–79%
+const COLOR_YELLOW = "#EAB308"; // 21–49%
+const COLOR_RED    = "#EF4444"; // 0–20%
+const COLOR_TRACK  = "#2E2E2E";
 
 function getRingColor(level: number, mode: BatteryMode): string {
-  if (mode === "charging") return COLOR_CHARGING;
-  if (mode === "full") return COLOR_FULL;
-  if (level <= 10) return COLOR_CRITICAL;
-  if (level <= 25) return COLOR_WARNING;
-  return COLOR_HEALTHY;
+  if (mode === "full") return COLOR_GREEN;
+  if (level >= 80) return COLOR_GREEN;
+  if (level >= 50) return COLOR_ORANGE;
+  if (level >= 21) return COLOR_YELLOW;
+  return COLOR_RED;
 }
 
 interface BatteryRingProps {
