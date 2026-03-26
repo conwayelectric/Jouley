@@ -44,3 +44,9 @@
 - [x] Restore 270° arc, fix fill so 50% = halfway through arc, 100% = full arc
 - [x] Add "Last Checked" timestamp to Settings showing when background task last ran
 - [x] Add charging speed label (Slow / Standard / Fast) to dashboard when charging
+- [x] Session history log — record each discharge session (start %, end %, duration, avg drain rate) to AsyncStorage
+- [x] History screen — display past discharge sessions in a scrollable list
+- [x] Low Power Mode indicator — detect iOS Low Power Mode and show badge on ring
+- [x] Custom notification sound (battery-alert.wav) for battery warning alerts
+- [x] Fix ring arc fill math — 55% must be just past center of 270° arc, 100% = full arc
+- [x] Add "Open Battery Settings" shortcut button on dashboard to open iOS Low Power Mode toggle

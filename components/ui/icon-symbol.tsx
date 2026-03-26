@@ -20,6 +20,7 @@ const MAPPING = {
   "chevron.right": "chevron-right",
   "battery.100": "battery-full",
   "gearshape.fill": "settings",
+  "clock.fill": "history",
 } as IconMapping;
 
 /**

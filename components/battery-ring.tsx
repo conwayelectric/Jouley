@@ -28,12 +28,13 @@ interface BatteryRingProps {
   level: number;
   mode: BatteryMode;
   isCalculating: boolean;
+  isLowPowerMode?: boolean;
 }
 
 // Animated SVG wrapper — only the ring scales, nothing else
 const AnimatedSvgWrapper = Animated.createAnimatedComponent(View);
 
-export function BatteryRing({ level, mode, isCalculating }: BatteryRingProps) {
+export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: BatteryRingProps) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Pulse animation for charging mode — only applied to the SVG wrapper
@@ -63,12 +64,14 @@ export function BatteryRing({ level, mode, isCalculating }: BatteryRingProps) {
   }, [mode]);
 
   const ringColor = getRingColor(level, mode);
-  // Fill is proportional to the 270° arc:
-  // 0% = nothing filled, 50% = halfway through arc, 100% = full arc
-  const arcLength = CIRCUMFERENCE * ARC_RATIO; // total visible arc length
-  const filledLength = arcLength * (level / 100); // how much to fill
-  const strokeDashoffset = CIRCUMFERENCE - filledLength; // offset from full circumference
-  const rotation = 135; // arc starts at bottom-left (gap at bottom)
+  // SVG strokeDasharray trick for a partial arc:
+  // - Track: dasharray = "arcLength fullCircumference" so only 270° of grey shows
+  // - Fill:  dasharray = "filledLength fullCircumference" so only the filled portion shows
+  // Both arcs start at the same rotation (135° = bottom-left), so fill grows clockwise
+  // from the start of the track arc, exactly proportional to battery level.
+  const arcLength = CIRCUMFERENCE * ARC_RATIO;          // 270° worth of pixels
+  const filledLength = arcLength * (level / 100);       // proportional fill
+  const rotation = 135; // arc gap sits at the bottom
 
   return (
     <View style={styles.container}>
@@ -93,7 +96,7 @@ export function BatteryRing({ level, mode, isCalculating }: BatteryRingProps) {
             strokeLinecap="round"
             transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
           />
-          {/* Fill arc */}
+          {/* Fill arc — dasharray = filledLength so only the filled portion renders */}
           <Circle
             cx={SIZE / 2}
             cy={SIZE / 2}
@@ -101,8 +104,7 @@ export function BatteryRing({ level, mode, isCalculating }: BatteryRingProps) {
             stroke={ringColor}
             strokeWidth={STROKE}
             fill="none"
-            strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
-            strokeDashoffset={strokeDashoffset}
+            strokeDasharray={`${filledLength} ${CIRCUMFERENCE}`}
             strokeLinecap="round"
             transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
           />
@@ -130,6 +132,11 @@ export function BatteryRing({ level, mode, isCalculating }: BatteryRingProps) {
               : "DISCHARGING"
             : "UNKNOWN"}
         </Text>
+        {isLowPowerMode && (
+          <View style={styles.lowPowerBadge}>
+            <Text style={styles.lowPowerText}>🐢 LOW POWER</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -171,5 +178,20 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: "#9A9A9A",
     textTransform: "uppercase",
+  },
+  lowPowerBadge: {
+    backgroundColor: "#2D2000",
+    borderWidth: 1,
+    borderColor: "#EAB308",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 2,
+  },
+  lowPowerText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#EAB308",
+    letterSpacing: 1.5,
   },
 });

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Platform } from "react-native";
 import * as Battery from "expo-battery";
 import * as Notifications from "expo-notifications";
+import { saveSession } from "@/lib/session-history";
 
 // Warning thresholds in minutes remaining (discharge)
 const DISCHARGE_WARNINGS = [20, 15, 10, 7, 5, 2];
@@ -118,7 +119,7 @@ async function sendWarningNotification(minutesLeft: number, drainRatePerMin: num
     content: {
       title: `${urgency} Battery Warning — ${minutesLeft} min left`,
       body,
-      sound: true,
+      sound: "battery-alert.wav",
     },
     trigger: null, // fire immediately
   });
@@ -133,7 +134,7 @@ async function sendMilestoneNotification(percent: number) {
         percent === 100
           ? "Battery fully charged!"
           : `Battery has reached ${percent}% charge.`,
-      sound: true,
+      sound: "battery-alert.wav",
     },
     trigger: null,
   });
@@ -163,6 +164,11 @@ export function useBatteryMonitor(): BatteryMonitorState {
   const prevModeRef = useRef<BatteryMode>("unknown");
   const notifPermRef = useRef<boolean>(false);
 
+  // Session tracking — records discharge sessions for history log
+  const sessionStartLevelRef = useRef<number | null>(null);
+  const sessionStartTimeRef = useRef<number | null>(null);
+  const sessionDrainSamplesRef = useRef<number[]>([]); // drain rates during session
+
   const addSample = useCallback((level: number) => {
     const sample: BatterySample = { level, timestamp: Date.now() };
     samplesRef.current = [...samplesRef.current.slice(-SAMPLE_WINDOW + 1), sample];
@@ -177,18 +183,67 @@ export function useBatteryMonitor(): BatteryMonitorState {
       else if (batteryState === Battery.BatteryState.FULL) mode = "full";
       else if (batteryState === Battery.BatteryState.UNPLUGGED) mode = "discharging";
 
-      // Reset samples when mode changes
+      // Handle mode transitions — record session end/start
       if (mode !== prevModeRef.current) {
+        const prevMode = prevModeRef.current;
+
+        // If we were discharging and now switched to charging/full, save the session
+        if (
+          prevMode === "discharging" &&
+          (mode === "charging" || mode === "full") &&
+          sessionStartLevelRef.current !== null &&
+          sessionStartTimeRef.current !== null
+        ) {
+          const endTime = Date.now();
+          const durationMs = endTime - sessionStartTimeRef.current;
+          const durationMinutes = Math.max(1, Math.round(durationMs / 60_000));
+          const rates = sessionDrainSamplesRef.current.filter((r) => r > 0);
+          const avgDrainRate =
+            rates.length > 0
+              ? rates.reduce((a, b) => a + b, 0) / rates.length
+              : 0;
+          saveSession({
+            id: `${endTime}`,
+            startLevel: sessionStartLevelRef.current,
+            endLevel: levelPct,
+            startTime: sessionStartTimeRef.current,
+            endTime,
+            durationMinutes,
+            avgDrainRatePerMin: Math.round(avgDrainRate * 100) / 100,
+          });
+          sessionStartLevelRef.current = null;
+          sessionStartTimeRef.current = null;
+          sessionDrainSamplesRef.current = [];
+        }
+
+        // If we just started discharging, record session start
+        if (mode === "discharging") {
+          sessionStartLevelRef.current = levelPct;
+          sessionStartTimeRef.current = Date.now();
+          sessionDrainSamplesRef.current = [];
+        }
+
         samplesRef.current = [];
         firedWarningsRef.current = new Set();
         firedMilestonesRef.current = new Set();
         prevModeRef.current = mode;
       }
 
+      // On first discharge detection (initial load)
+      if (mode === "discharging" && sessionStartLevelRef.current === null) {
+        sessionStartLevelRef.current = levelPct;
+        sessionStartTimeRef.current = Date.now();
+        sessionDrainSamplesRef.current = [];
+      }
+
       addSample(level);
 
       if (mode === "discharging") {
         const drainRate = calcRatePerMin(samplesRef.current, MAX_DRAIN_RATE);
+        // Accumulate drain rate samples for session average
+        if (drainRate !== null && drainRate > 0) {
+          sessionDrainSamplesRef.current.push(drainRate);
+        }
         const minutesRemaining =
           drainRate && drainRate > 0 ? Math.ceil(levelPct / drainRate) : null;
 

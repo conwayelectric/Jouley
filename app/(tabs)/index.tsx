@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,13 @@ import {
   Platform,
   Image,
   StatusBar,
+  TouchableOpacity,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import * as Battery from "expo-battery";
 import { useBatteryMonitor } from "@/hooks/use-battery-monitor";
 import { BatteryRing } from "@/components/battery-ring";
 import { ChargingMilestones } from "@/components/charging-milestones";
@@ -39,6 +42,17 @@ function formatTime(minutes: number | null): string {
 
 export default function HomeScreen() {
   const battery = useBatteryMonitor();
+  const [isLowPowerMode, setIsLowPowerMode] = useState(false);
+
+  // Detect Low Power Mode
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    Battery.isLowPowerModeEnabledAsync().then(setIsLowPowerMode).catch(() => {});
+    const sub = Battery.addLowPowerModeListener(({ lowPowerMode }) => {
+      setIsLowPowerMode(lowPowerMode);
+    });
+    return () => sub.remove();
+  }, []);
 
   const isCharging = battery.mode === "charging" || battery.mode === "full";
 
@@ -91,6 +105,7 @@ export default function HomeScreen() {
             level={battery.level}
             mode={battery.mode}
             isCalculating={battery.isCalculating}
+            isLowPowerMode={isLowPowerMode}
           />
         </View>
 
@@ -211,6 +226,22 @@ export default function HomeScreen() {
             </Text>
           </View>
         )}
+
+        {/* Low Power Mode Shortcut */}
+        <TouchableOpacity
+          style={styles.lowPowerBtn}
+          onPress={() => Linking.openURL("App-prefs:BATTERY_USAGE")}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.lowPowerBtnIcon}>🐢</Text>
+          <View style={styles.lowPowerBtnText}>
+            <Text style={styles.lowPowerBtnTitle}>
+              {isLowPowerMode ? "Low Power Mode: ON" : "Low Power Mode: OFF"}
+            </Text>
+            <Text style={styles.lowPowerBtnSub}>Tap to open iOS Battery Settings</Text>
+          </View>
+          <Text style={styles.lowPowerBtnArrow}>›</Text>
+        </TouchableOpacity>
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -457,5 +488,42 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#6B6B6B",
     letterSpacing: 1,
+  },
+
+  // Low Power Mode shortcut button
+  lowPowerBtn: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    backgroundColor: "#1A1A1A",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#2E2E2E",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  lowPowerBtnIcon: {
+    fontSize: 22,
+  },
+  lowPowerBtnText: {
+    flex: 1,
+    gap: 2,
+  },
+  lowPowerBtnTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  lowPowerBtnSub: {
+    fontSize: 11,
+    color: "#6B6B6B",
+    fontWeight: "500",
+  },
+  lowPowerBtnArrow: {
+    fontSize: 20,
+    color: "#6B6B6B",
+    fontWeight: "300",
   },
 });
