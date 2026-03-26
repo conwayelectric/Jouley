@@ -28,11 +28,11 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "Battery Guardian",
+  appName: "CE Power Monitor",
   appSlug: "battery-guardian",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "",
+  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/110712656/eGoElrqratmZOCwS.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
@@ -109,6 +109,15 @@ const config: ExpoConfig = {
         dark: {
           backgroundColor: "#000000",
         },
+      },
+    ],
+    [
+      "expo-notifications",
+      {
+        icon: "./assets/images/icon.png",
+        color: "#E8450A",
+        sounds: [],
+        iosDisplayInForeground: true,
       },
     ],
     [
