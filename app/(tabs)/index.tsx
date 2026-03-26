@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
 import { useBatteryMonitor } from "@/hooks/use-battery-monitor";
 import { BatteryRing } from "@/components/battery-ring";
 import { WarningBanner } from "@/components/warning-banner";
@@ -145,6 +146,30 @@ export default function HomeScreen() {
           timeLabel={timeLabel}
           mode={battery.mode}
         />
+
+        {/* Device Info Card */}
+        <View style={styles.deviceCard}>
+          <View style={styles.deviceRow}>
+            <Text style={styles.deviceLabel}>DEVICE</Text>
+            <Text style={styles.deviceValue}>
+              {Device.modelName ?? Device.deviceName ?? "Unknown Device"}
+            </Text>
+          </View>
+          <View style={styles.deviceDivider} />
+          <View style={styles.deviceRow}>
+            <Text style={styles.deviceLabel}>OS</Text>
+            <Text style={styles.deviceValue}>
+              {Device.osName ?? Platform.OS.toUpperCase()} {Device.osVersion ?? ""}
+            </Text>
+          </View>
+          <View style={styles.deviceDivider} />
+          <View style={styles.deviceRow}>
+            <Text style={styles.deviceLabel}>BRAND</Text>
+            <Text style={styles.deviceValue}>
+              {Device.brand ?? Device.manufacturer ?? "Apple"}
+            </Text>
+          </View>
+        </View>
 
         {/* Charging Milestones (charging mode only) */}
         {isCharging && battery.mode !== "full" && (
@@ -380,5 +405,42 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
     lineHeight: 24,
+  },
+
+  // Device info card
+  deviceCard: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    backgroundColor: "#1A1A1A",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#2E2E2E",
+    overflow: "hidden",
+  },
+  deviceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  deviceDivider: {
+    height: 1,
+    backgroundColor: "#2E2E2E",
+    marginHorizontal: 18,
+  },
+  deviceLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 2,
+    color: "#6B6B6B",
+  },
+  deviceValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    textAlign: "right",
+    flex: 1,
+    marginLeft: 16,
   },
 });

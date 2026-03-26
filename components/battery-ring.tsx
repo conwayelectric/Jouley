@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, Image, StyleSheet, Animated, Easing } from "react-native";
-import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
+import Svg, { Circle } from "react-native-svg";
 import { BatteryMode } from "@/hooks/use-battery-monitor";
 
 const SIZE = 260;
@@ -30,26 +30,19 @@ interface BatteryRingProps {
   isCalculating: boolean;
 }
 
+// Animated SVG wrapper — only the ring scales, nothing else
+const AnimatedSvgWrapper = Animated.createAnimatedComponent(View);
+
 export function BatteryRing({ level, mode, isCalculating }: BatteryRingProps) {
-  const animatedLevel = useRef(new Animated.Value(level)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  useEffect(() => {
-    Animated.timing(animatedLevel, {
-      toValue: level,
-      duration: 800,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-  }, [level]);
-
-  // Pulse animation for charging mode
+  // Pulse animation for charging mode — only applied to the SVG wrapper
   useEffect(() => {
     if (mode === "charging") {
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.08,
+            toValue: 1.07,
             duration: 900,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
@@ -72,53 +65,57 @@ export function BatteryRing({ level, mode, isCalculating }: BatteryRingProps) {
   const ringColor = getRingColor(level, mode);
   const fillRatio = (level / 100) * ARC_RATIO;
   const strokeDashoffset = CIRCUMFERENCE * (1 - fillRatio);
-  // Rotate so arc starts at ~135° (bottom-left gap)
-  const rotation = 135;
+  const rotation = 135; // arc starts at bottom-left gap
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ scale: pulseAnim }] }]}>
-      <Svg width={SIZE} height={SIZE} style={styles.svg}>
-        {/* Track arc */}
-        <Circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={RADIUS}
-          stroke={COLOR_TRACK}
-          strokeWidth={STROKE}
-          fill="none"
-          strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
-          strokeDashoffset={0}
-          strokeLinecap="round"
-          transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
-        />
-        {/* Fill arc */}
-        <Circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={RADIUS}
-          stroke={ringColor}
-          strokeWidth={STROKE}
-          fill="none"
-          strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
-        />
-      </Svg>
+    <View style={styles.container}>
+      {/* Ring SVG — this is the ONLY thing that pulses */}
+      <AnimatedSvgWrapper
+        style={[
+          styles.svgWrapper,
+          { transform: [{ scale: pulseAnim }] },
+        ]}
+      >
+        <Svg width={SIZE} height={SIZE}>
+          {/* Track arc */}
+          <Circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            stroke={COLOR_TRACK}
+            strokeWidth={STROKE}
+            fill="none"
+            strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
+            strokeDashoffset={0}
+            strokeLinecap="round"
+            transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
+          />
+          {/* Fill arc */}
+          <Circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            stroke={ringColor}
+            strokeWidth={STROKE}
+            fill="none"
+            strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
+          />
+        </Svg>
+      </AnimatedSvgWrapper>
 
-      {/* Center content */}
-      <View style={styles.centerContent}>
-        {/* Conway Electric streetlight logo */}
+      {/* Center content — NEVER moves or scales */}
+      <View style={styles.centerContent} pointerEvents="none">
         <Image
           source={require("@/assets/images/conway_streetlight_logo.png")}
           style={styles.logo}
           resizeMode="contain"
         />
-        {/* Battery percentage */}
         <Text style={[styles.percentText, { color: ringColor }]}>
           {level}%
         </Text>
-        {/* Mode label */}
         <Text style={styles.modeLabel}>
           {mode === "charging"
             ? "CHARGING ⚡"
@@ -131,7 +128,7 @@ export function BatteryRing({ level, mode, isCalculating }: BatteryRingProps) {
             : "UNKNOWN"}
         </Text>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -142,9 +139,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  svg: {
+  // The SVG wrapper sits absolutely behind center content
+  svgWrapper: {
     position: "absolute",
+    width: SIZE,
+    height: SIZE,
   },
+  // Center content is layered on top, perfectly still
   centerContent: {
     alignItems: "center",
     justifyContent: "center",

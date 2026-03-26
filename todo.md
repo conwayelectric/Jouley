@@ -15,3 +15,6 @@
 - [x] Polish UI: animations, transitions, dark theme, Conway Electric branding
 - [x] Save checkpoint
 - [x] Update ring color thresholds: green (80-100%), orange (50-79%), yellow (21-49%), red (0-20%)
+- [x] Fix charging pulse: only ring SVG animates, logo and percentage stay static
+- [x] Add device model display (iPhone 15, iPad, etc.) to the home screen
+- [x] Remove white background corners from streetlight logo PNG
