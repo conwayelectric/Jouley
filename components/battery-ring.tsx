@@ -10,17 +10,17 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const ARC_RATIO = 0.75; // 270° arc
 
 // Ring colors based on battery level
-const COLOR_GREEN  = "#22C55E"; // 80–100%
-const COLOR_ORANGE = "#F97316"; // 50–79%
-const COLOR_YELLOW = "#EAB308"; // 21–49%
+const COLOR_GREEN  = "#22C55E"; // 76–100%
+const COLOR_YELLOW = "#EAB308"; // 51–75%
+const COLOR_ORANGE = "#F97316"; // 21–50%
 const COLOR_RED    = "#EF4444"; // 0–20%
 const COLOR_TRACK  = "#2E2E2E";
 
 function getRingColor(level: number, mode: BatteryMode): string {
   if (mode === "full") return COLOR_GREEN;
-  if (level >= 80) return COLOR_GREEN;
-  if (level >= 50) return COLOR_ORANGE;
-  if (level >= 21) return COLOR_YELLOW;
+  if (level >= 76) return COLOR_GREEN;
+  if (level >= 51) return COLOR_YELLOW;
+  if (level >= 21) return COLOR_ORANGE;
   return COLOR_RED;
 }
 
