@@ -243,37 +243,18 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Low Power Mode Shortcut */}
-        <TouchableOpacity
-          style={styles.lowPowerBtn}
-          onPress={async () => {
-            // Try the most specific URL first, fall back down the chain
-            const urls = [
-              "prefs:root=BATTERY_USAGE#BATTERY_SAVER_MODE", // iOS 16+ Low Power Mode direct
-              "prefs:root=BATTERY_USAGE",                    // iOS Battery settings page
-              "App-prefs:root=BATTERY_USAGE",                // Alternate scheme
-              "App-prefs:BATTERY_USAGE",                     // Legacy scheme
-            ];
-            for (const url of urls) {
-              try {
-                const supported = await Linking.canOpenURL(url);
-                if (supported) { await Linking.openURL(url); return; }
-              } catch {}
-            }
-            // Final fallback — open root Settings
-            Linking.openSettings();
-          }}
-          activeOpacity={0.75}
-        >
-          <Text style={styles.lowPowerBtnIcon}>🐢</Text>
-          <View style={styles.lowPowerBtnText}>
-            <Text style={styles.lowPowerBtnTitle}>
-              {isLowPowerMode ? "Low Power Mode: ON" : "Low Power Mode: OFF"}
-            </Text>
-            <Text style={styles.lowPowerBtnSub}>Tap to open iOS Battery Settings</Text>
+        {/* Low Power Mode suggestion — only shown when battery ≤20% and Low Power Mode is off */}
+        {battery.level <= 20 && !isLowPowerMode && battery.mode === "discharging" && (
+          <View style={styles.lowPowerSuggestion}>
+            <Text style={styles.lowPowerSuggestionIcon}>🐢</Text>
+            <View style={styles.lowPowerSuggestionText}>
+              <Text style={styles.lowPowerSuggestionTitle}>Enable Low Power Mode</Text>
+              <Text style={styles.lowPowerSuggestionBody}>
+                Your battery is low. Go to Settings → Battery and turn on Low Power Mode to extend battery life.
+              </Text>
+            </View>
           </View>
-          <Text style={styles.lowPowerBtnArrow}>›</Text>
-        </TouchableOpacity>
+        )}
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -522,40 +503,37 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  // Low Power Mode shortcut button
-  lowPowerBtn: {
+  // Low Power Mode suggestion card (shown at ≤20%)
+  lowPowerSuggestion: {
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#1A1200",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#2E2E2E",
+    borderColor: "#EAB30844",
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingHorizontal: 18,
     paddingVertical: 14,
     gap: 12,
   },
-  lowPowerBtnIcon: {
+  lowPowerSuggestionIcon: {
     fontSize: 22,
+    marginTop: 1,
   },
-  lowPowerBtnText: {
+  lowPowerSuggestionText: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
-  lowPowerBtnTitle: {
+  lowPowerSuggestionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#EAB308",
   },
-  lowPowerBtnSub: {
-    fontSize: 11,
-    color: "#6B6B6B",
+  lowPowerSuggestionBody: {
+    fontSize: 12,
+    color: "#A89040",
     fontWeight: "500",
-  },
-  lowPowerBtnArrow: {
-    fontSize: 20,
-    color: "#6B6B6B",
-    fontWeight: "300",
+    lineHeight: 18,
   },
 });

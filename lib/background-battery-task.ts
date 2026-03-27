@@ -151,10 +151,14 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
             !firedWarnings.includes(threshold)
           ) {
             firedWarnings.push(threshold);
+            const isLowLevel = estimatedLevel <= 20;
+            const lowPowerTip = isLowLevel
+              ? " Enable Low Power Mode: Settings → Battery."
+              : "";
             await Notifications.scheduleNotificationAsync({
               content: {
                 title: `⚡ ${threshold} Minutes of Battery Remaining`,
-                body: `Estimated ${threshold} min left (${estimatedLevel.toFixed(0)}%). Drain rate: ${drainRatePerMin.toFixed(2)}%/min. Plug in soon!`,
+                body: `Estimated ${threshold} min left (${estimatedLevel.toFixed(0)}%). Drain rate: ${drainRatePerMin.toFixed(2)}%/min. Plug in soon!${lowPowerTip}`,
                 sound: "battery-alert.wav",
               },
               trigger: null, // fire immediately
@@ -180,7 +184,7 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `🔴 Low Battery — ${levelPct}% remaining`,
-          body: `Your battery is running low.${minutesStr} Plug in soon.${rateStr}`,
+          body: `Your battery is running low.${minutesStr} Plug in soon.${rateStr} Enable Low Power Mode: Settings → Battery.`,
           sound: "battery-alert.wav",
         },
         trigger: null,

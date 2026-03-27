@@ -57,3 +57,6 @@
 - [x] Fix BatteryRing colour thresholds: red ≤20%, orange 21-50%, yellow 51-75%, green 76-100%
 - [x] Fix Low Power Mode deep link to correct iOS Settings URL
 - [x] Fix Low Power Mode button — use correct iOS deep link with fallback chain
+- [x] Remove Low Power Mode deep link button from dashboard
+- [x] Show Low Power Mode suggestion card on dashboard when battery ≤20%
+- [x] Include Low Power Mode suggestion in push notifications when battery ≤20%
