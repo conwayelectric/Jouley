@@ -10,6 +10,7 @@ import {
   StatusBar,
   TouchableOpacity,
   Linking,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Notifications from "expo-notifications";
@@ -315,6 +316,24 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Share Button */}
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={() => {
+            const iosUrl = "https://apps.apple.com/app/id000000000"; // replace with real App Store ID after publish
+            const androidUrl = "https://play.google.com/store/apps/details?id=space.manus.battery.guardian"; // replace after publish
+            const storeUrl = Platform.OS === "android" ? androidUrl : iosUrl;
+            Share.share({
+              message: `I use the Conway Electric Power Monitor app so I always know how much time I have left in my battery. You can download it here: ${storeUrl}`,
+              url: storeUrl, // iOS uses this for the native share sheet URL preview
+            });
+          }}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.shareIcon}>↑</Text>
+          <Text style={styles.shareButtonText}>SHARE THIS APP</Text>
+        </TouchableOpacity>
+
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>CONWAY ELECTRIC · STAY CHARGED</Text>
@@ -615,5 +634,33 @@ const styles = StyleSheet.create({
     color: "#6B6B6B",
     fontWeight: "400",
     lineHeight: 20,
+  },
+
+  // Share button
+  shareButton: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: "#1A1A1A",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#3A3A3A",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  shareIcon: {
+    fontSize: 18,
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  shareButtonText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 2,
   },
 });

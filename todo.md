@@ -68,3 +68,4 @@
 - [x] Inner tick marks on arc at 5%, 10%, 20%, 30%...100%
 - [x] Add percentage labels at 25/50/75/100% tick marks on battery ring
 - [x] Persist suggestion card dismissals to AsyncStorage
+- [x] Add share button at bottom of dashboard with custom message and platform-aware App Store / Play Store link
