@@ -66,3 +66,5 @@
 - [x] Charging bar gradient fade at the leading tip
 - [x] Charging bar flat/square stroke ends (no rounded caps)
 - [x] Inner tick marks on arc at 5%, 10%, 20%, 30%...100%
+- [x] Add percentage labels at 25/50/75/100% tick marks on battery ring
+- [x] Persist suggestion card dismissals to AsyncStorage

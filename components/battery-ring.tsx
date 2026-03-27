@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, Image, StyleSheet, Animated, Easing } from "react-native";
-import Svg, { Circle, Line, Defs, LinearGradient, Stop, Path } from "react-native-svg";
+import Svg, { Circle, Line, Defs, LinearGradient, Stop, Text as SvgText } from "react-native-svg";
 import { BatteryMode } from "@/hooks/use-battery-monitor";
 
 const SIZE = 260;
@@ -201,29 +201,46 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               })()
             )}
 
-            {/* Inner tick marks */}
+            {/* Inner tick marks + labels at 25/50/75/100% */}
             {tickPercents.map((pct) => {
-              // Angle for this tick on the arc
               const tickDeg = arcStartDeg + ARC_DEG * (pct / 100);
               const tickRad = (tickDeg * Math.PI) / 180;
-              // Inner edge of stroke
               const innerR = RADIUS - STROKE / 2 - 2;
               const outerR = innerR - TICK_LENGTH;
               const x1 = CX + innerR * Math.cos(tickRad);
               const y1 = CY + innerR * Math.sin(tickRad);
               const x2 = CX + outerR * Math.cos(tickRad);
               const y2 = CY + outerR * Math.sin(tickRad);
-              // Tick is bright if below or at current level, dim if above
               const isActive = pct <= level;
+              // Label positions — placed further inside the ring
+              const showLabel = pct === 25 || pct === 50 || pct === 75 || pct === 100;
+              const labelR = innerR - TICK_LENGTH - 10;
+              const lx = CX + labelR * Math.cos(tickRad);
+              const ly = CY + labelR * Math.sin(tickRad);
               return (
-                <Line
-                  key={pct}
-                  x1={x1} y1={y1}
-                  x2={x2} y2={y2}
-                  stroke={isActive ? "#FFFFFF" : "#555555"}
-                  strokeWidth={pct % 10 === 0 ? 2 : 1.2}
-                  strokeLinecap="butt"
-                />
+                <React.Fragment key={pct}>
+                  <Line
+                    x1={x1} y1={y1}
+                    x2={x2} y2={y2}
+                    stroke={isActive ? "#FFFFFF" : "#555555"}
+                    strokeWidth={pct % 10 === 0 ? 2 : 1.2}
+                    strokeLinecap="butt"
+                  />
+                  {showLabel && (
+                    <SvgText
+                      x={lx}
+                      y={ly}
+                      textAnchor="middle"
+                      alignmentBaseline="middle"
+                      fontSize={8}
+                      fontWeight="700"
+                      fill={isActive ? "#CCCCCC" : "#444444"}
+                      letterSpacing={0.5}
+                    >
+                      {pct}%
+                    </SvgText>
+                  )}
+                </React.Fragment>
               );
             })}
           </Svg>

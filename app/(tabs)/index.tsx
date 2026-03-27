@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -47,20 +48,39 @@ export default function HomeScreen() {
   const [isLowPowerMode, setIsLowPowerMode] = useState(false);
   const [lowPowerDismissed, setLowPowerDismissed] = useState(false);
   const [slowChargerDismissed, setSlowChargerDismissed] = useState(false);
+
+  // Load persisted dismissals on mount
+  useEffect(() => {
+    AsyncStorage.multiGet(["dismiss_lowpower", "dismiss_slowcharger"]).then((pairs) => {
+      if (pairs[0][1] === "1") setLowPowerDismissed(true);
+      if (pairs[1][1] === "1") setSlowChargerDismissed(true);
+    }).catch(() => {});
+  }, []);
   const thermal = useThermalState(
     battery.mode === "discharging" ? battery.drainRatePerMin : null,
     isLowPowerMode
   );
 
-  // Reset dismissals when mode changes (e.g. plug in / unplug)
+  // Reset dismissals when mode changes (e.g. plug in / unplug) and clear storage
   const prevMode = useRef(battery.mode);
   useEffect(() => {
     if (prevMode.current !== battery.mode) {
       setLowPowerDismissed(false);
       setSlowChargerDismissed(false);
+      AsyncStorage.multiRemove(["dismiss_lowpower", "dismiss_slowcharger"]).catch(() => {});
       prevMode.current = battery.mode;
     }
   }, [battery.mode]);
+
+  // Persist dismissal helpers
+  const dismissLowPower = () => {
+    setLowPowerDismissed(true);
+    AsyncStorage.setItem("dismiss_lowpower", "1").catch(() => {});
+  };
+  const dismissSlowCharger = () => {
+    setSlowChargerDismissed(true);
+    AsyncStorage.setItem("dismiss_slowcharger", "1").catch(() => {});
+  };
 
   // Detect Low Power Mode
   useEffect(() => {
@@ -267,7 +287,7 @@ export default function HomeScreen() {
             </View>
             <TouchableOpacity
               style={styles.suggestionDismiss}
-              onPress={() => setLowPowerDismissed(true)}
+              onPress={dismissLowPower}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.suggestionDismissText}>✕</Text>
@@ -287,7 +307,7 @@ export default function HomeScreen() {
             </View>
             <TouchableOpacity
               style={styles.suggestionDismiss}
-              onPress={() => setSlowChargerDismissed(true)}
+              onPress={dismissSlowCharger}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.suggestionDismissText}>✕</Text>
