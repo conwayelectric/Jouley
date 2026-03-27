@@ -55,3 +55,4 @@
 - [x] Wire useThermalState hook into dashboard with real-time 10s updates
 - [x] Fix app not displaying properly in Expo Go after thermal gauge update
 - [x] Fix BatteryRing colour thresholds: red ≤20%, orange 21-50%, yellow 51-75%, green 76-100%
+- [x] Fix Low Power Mode deep link to correct iOS Settings URL

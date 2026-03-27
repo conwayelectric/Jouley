@@ -246,7 +246,7 @@ export default function HomeScreen() {
         {/* Low Power Mode Shortcut */}
         <TouchableOpacity
           style={styles.lowPowerBtn}
-          onPress={() => Linking.openURL("App-prefs:BATTERY_USAGE")}
+          onPress={() => Linking.openURL("App-prefs:LOW_POWER_MODE")}
           activeOpacity={0.75}
         >
           <Text style={styles.lowPowerBtnIcon}>🐢</Text>
