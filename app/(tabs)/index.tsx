@@ -246,7 +246,23 @@ export default function HomeScreen() {
         {/* Low Power Mode Shortcut */}
         <TouchableOpacity
           style={styles.lowPowerBtn}
-          onPress={() => Linking.openURL("App-prefs:LOW_POWER_MODE")}
+          onPress={async () => {
+            // Try the most specific URL first, fall back down the chain
+            const urls = [
+              "prefs:root=BATTERY_USAGE#BATTERY_SAVER_MODE", // iOS 16+ Low Power Mode direct
+              "prefs:root=BATTERY_USAGE",                    // iOS Battery settings page
+              "App-prefs:root=BATTERY_USAGE",                // Alternate scheme
+              "App-prefs:BATTERY_USAGE",                     // Legacy scheme
+            ];
+            for (const url of urls) {
+              try {
+                const supported = await Linking.canOpenURL(url);
+                if (supported) { await Linking.openURL(url); return; }
+              } catch {}
+            }
+            // Final fallback — open root Settings
+            Linking.openSettings();
+          }}
           activeOpacity={0.75}
         >
           <Text style={styles.lowPowerBtnIcon}>🐢</Text>
