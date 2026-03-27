@@ -60,3 +60,9 @@
 - [x] Remove Low Power Mode deep link button from dashboard
 - [x] Show Low Power Mode suggestion card on dashboard when battery ≤20%
 - [x] Include Low Power Mode suggestion in push notifications when battery ≤20%
+- [x] Slow charger tip card when charge rate < 0.2%/min
+- [x] Dismissible suggestion cards with × button
+- [x] Critical pulse animation on battery ring at ≤10%
+- [x] Charging bar gradient fade at the leading tip
+- [x] Charging bar flat/square stroke ends (no rounded caps)
+- [x] Inner tick marks on arc at 5%, 10%, 20%, 30%...100%

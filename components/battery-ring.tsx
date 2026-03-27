@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, Image, StyleSheet, Animated, Easing } from "react-native";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Circle, Line, Defs, LinearGradient, Stop, Path } from "react-native-svg";
 import { BatteryMode } from "@/hooks/use-battery-monitor";
 
 const SIZE = 260;
@@ -8,6 +8,8 @@ const STROKE = 18;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const ARC_RATIO = 0.75; // 270° arc
+const ARC_DEG = 270;
+const START_DEG = 135; // arc starts at bottom-left, goes clockwise
 
 // Ring colors based on battery level
 const COLOR_GREEN  = "#22C55E"; // 76–100%
@@ -15,6 +17,8 @@ const COLOR_YELLOW = "#EAB308"; // 51–75%
 const COLOR_ORANGE = "#F97316"; // 21–50%
 const COLOR_RED    = "#EF4444"; // 0–20%
 const COLOR_TRACK  = "#2E2E2E";
+const CX = SIZE / 2;
+const CY = SIZE / 2;
 
 function getRingColor(level: number, mode: BatteryMode): string {
   if (mode === "full") return COLOR_GREEN;
@@ -22,6 +26,36 @@ function getRingColor(level: number, mode: BatteryMode): string {
   if (level >= 51) return COLOR_YELLOW;
   if (level >= 21) return COLOR_ORANGE;
   return COLOR_RED;
+}
+
+/** Convert polar angle (degrees, 0=right, clockwise) to SVG x,y */
+function polarToXY(angleDeg: number, r: number): { x: number; y: number } {
+  const rad = (angleDeg * Math.PI) / 180;
+  return {
+    x: CX + r * Math.cos(rad),
+    y: CY + r * Math.sin(rad),
+  };
+}
+
+/**
+ * Build an SVG arc path for a partial circle.
+ * startDeg / endDeg are in SVG coordinate space (0=right, clockwise).
+ */
+function arcPath(startDeg: number, endDeg: number, r: number, strokeW: number): string {
+  const inner = r - strokeW / 2;
+  const outer = r + strokeW / 2;
+  const s1 = polarToXY(startDeg, outer);
+  const e1 = polarToXY(endDeg, outer);
+  const s2 = polarToXY(endDeg, inner);
+  const e2 = polarToXY(startDeg, inner);
+  const largeArc = endDeg - startDeg > 180 ? 1 : 0;
+  return [
+    `M ${s1.x} ${s1.y}`,
+    `A ${outer} ${outer} 0 ${largeArc} 1 ${e1.x} ${e1.y}`,
+    `L ${s2.x} ${s2.y}`,
+    `A ${inner} ${inner} 0 ${largeArc} 0 ${e2.x} ${e2.y}`,
+    "Z",
+  ].join(" ");
 }
 
 interface BatteryRingProps {
@@ -36,24 +70,15 @@ const AnimatedSvgWrapper = Animated.createAnimatedComponent(View);
 
 export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: BatteryRingProps) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const criticalOpacity = useRef(new Animated.Value(1)).current;
 
-  // Pulse animation for charging mode — only applied to the SVG wrapper
+  // Charging pulse — gentle scale on the SVG wrapper
   useEffect(() => {
     if (mode === "charging") {
       const pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.07,
-            duration: 900,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 900,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 1.07, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       );
       pulse.start();
@@ -63,51 +88,146 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
     }
   }, [mode]);
 
+  // Critical pulse — slow red opacity flash at ≤10%
+  useEffect(() => {
+    if (mode === "discharging" && level <= 10) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(criticalOpacity, { toValue: 0.35, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(criticalOpacity, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      criticalOpacity.setValue(1);
+    }
+  }, [mode, level <= 10]);
+
   const ringColor = getRingColor(level, mode);
-  // SVG strokeDasharray trick for a partial arc:
-  // - Track: dasharray = "arcLength fullCircumference" so only 270° of grey shows
-  // - Fill:  dasharray = "filledLength fullCircumference" so only the filled portion shows
-  // Both arcs start at the same rotation (135° = bottom-left), so fill grows clockwise
-  // from the start of the track arc, exactly proportional to battery level.
-  const arcLength = CIRCUMFERENCE * ARC_RATIO;          // 270° worth of pixels
-  const filledLength = arcLength * (level / 100);       // proportional fill
-  const rotation = 135; // arc gap sits at the bottom
+
+  // Arc geometry
+  // START_DEG=135 in SVG space (0=right, clockwise), arc spans 270°
+  const arcStartDeg = START_DEG;
+  const arcEndDeg = START_DEG + ARC_DEG; // 405° = same as 45°
+
+  // Filled portion end angle
+  const fillEndDeg = arcStartDeg + ARC_DEG * (level / 100);
+
+  // strokeDasharray approach for track (simpler, no path needed for track)
+  const arcLength = CIRCUMFERENCE * ARC_RATIO;
+  const filledLength = arcLength * (level / 100);
+
+  // Tick marks: at 5%, 10%, 20%, 30%, ... 100%
+  const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  const TICK_INNER_OFFSET = STROKE / 2 + 4;  // inside the arc
+  const TICK_LENGTH = 6;
 
   return (
     <View style={styles.container}>
-      {/* Ring SVG — this is the ONLY thing that pulses */}
+      {/* Ring SVG — this is the ONLY thing that pulses (charging) */}
       <AnimatedSvgWrapper
         style={[
           styles.svgWrapper,
           { transform: [{ scale: pulseAnim }] },
         ]}
       >
-        <Svg width={SIZE} height={SIZE}>
-          {/* Track arc */}
-          <Circle
-            cx={SIZE / 2}
-            cy={SIZE / 2}
-            r={RADIUS}
-            stroke={COLOR_TRACK}
-            strokeWidth={STROKE}
-            fill="none"
-            strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
-            strokeLinecap="round"
-            transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
-          />
-          {/* Fill arc — dasharray = filledLength so only the filled portion renders */}
-          <Circle
-            cx={SIZE / 2}
-            cy={SIZE / 2}
-            r={RADIUS}
-            stroke={ringColor}
-            strokeWidth={STROKE}
-            fill="none"
-            strokeDasharray={`${filledLength} ${CIRCUMFERENCE}`}
-            strokeLinecap="round"
-            transform={`rotate(${rotation} ${SIZE / 2} ${SIZE / 2})`}
-          />
-        </Svg>
+        {/* Critical pulse overlay — only the fill arc fades */}
+        <Animated.View style={[styles.svgWrapper, { opacity: criticalOpacity }]}>
+          <Svg width={SIZE} height={SIZE}>
+            <Defs>
+              {/* Gradient for the leading tip of the fill arc — fades to transparent */}
+              <LinearGradient id="tipFade" x1="0" y1="0" x2="1" y2="0">
+                <Stop offset="0" stopColor={ringColor} stopOpacity="1" />
+                <Stop offset="0.7" stopColor={ringColor} stopOpacity="1" />
+                <Stop offset="1" stopColor={ringColor} stopOpacity="0" />
+              </LinearGradient>
+            </Defs>
+
+            {/* Track arc — flat ends via strokeLinecap="butt" */}
+            <Circle
+              cx={CX}
+              cy={CY}
+              r={RADIUS}
+              stroke={COLOR_TRACK}
+              strokeWidth={STROKE}
+              fill="none"
+              strokeDasharray={`${arcLength} ${CIRCUMFERENCE}`}
+              strokeLinecap="butt"
+              transform={`rotate(${START_DEG} ${CX} ${CY})`}
+            />
+
+            {/* Fill arc — solid colour, flat ends */}
+            {level > 0 && (
+              <Circle
+                cx={CX}
+                cy={CY}
+                r={RADIUS}
+                stroke={ringColor}
+                strokeWidth={STROKE}
+                fill="none"
+                strokeDasharray={`${filledLength} ${CIRCUMFERENCE}`}
+                strokeLinecap="butt"
+                transform={`rotate(${START_DEG} ${CX} ${CY})`}
+              />
+            )}
+
+            {/* Gradient fade cap at the leading tip — a short arc segment at the tip */}
+            {level > 2 && (
+              (() => {
+                // Draw a short arc segment at the leading edge of the fill,
+                // covering the last ~8% of the filled arc, using gradient stroke.
+                const fadeLengthPct = Math.min(8, level * 0.4);
+                const fadeStartPct = level - fadeLengthPct;
+                const fadeFilledLength = arcLength * (level / 100);
+                const fadeStartLength = arcLength * (fadeStartPct / 100);
+                const fadeSectionLength = fadeFilledLength - fadeStartLength;
+
+                // We render this as a separate Circle with dashoffset to start at fadeStartLength
+                return (
+                  <Circle
+                    cx={CX}
+                    cy={CY}
+                    r={RADIUS}
+                    stroke={`url(#tipFade)`}
+                    strokeWidth={STROKE}
+                    fill="none"
+                    strokeDasharray={`${fadeSectionLength} ${CIRCUMFERENCE}`}
+                    strokeDashoffset={-fadeStartLength}
+                    strokeLinecap="butt"
+                    transform={`rotate(${START_DEG} ${CX} ${CY})`}
+                  />
+                );
+              })()
+            )}
+
+            {/* Inner tick marks */}
+            {tickPercents.map((pct) => {
+              // Angle for this tick on the arc
+              const tickDeg = arcStartDeg + ARC_DEG * (pct / 100);
+              const tickRad = (tickDeg * Math.PI) / 180;
+              // Inner edge of stroke
+              const innerR = RADIUS - STROKE / 2 - 2;
+              const outerR = innerR - TICK_LENGTH;
+              const x1 = CX + innerR * Math.cos(tickRad);
+              const y1 = CY + innerR * Math.sin(tickRad);
+              const x2 = CX + outerR * Math.cos(tickRad);
+              const y2 = CY + outerR * Math.sin(tickRad);
+              // Tick is bright if below or at current level, dim if above
+              const isActive = pct <= level;
+              return (
+                <Line
+                  key={pct}
+                  x1={x1} y1={y1}
+                  x2={x2} y2={y2}
+                  stroke={isActive ? "#FFFFFF" : "#555555"}
+                  strokeWidth={pct % 10 === 0 ? 2 : 1.2}
+                  strokeLinecap="butt"
+                />
+              );
+            })}
+          </Svg>
+        </Animated.View>
       </AnimatedSvgWrapper>
 
       {/* Center content — NEVER moves or scales */}
@@ -148,13 +268,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // The SVG wrapper sits absolutely behind center content
   svgWrapper: {
     position: "absolute",
     width: SIZE,
     height: SIZE,
   },
-  // Center content is layered on top, perfectly still
   centerContent: {
     alignItems: "center",
     justifyContent: "center",

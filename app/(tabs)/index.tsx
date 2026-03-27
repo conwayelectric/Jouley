@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -45,10 +45,22 @@ function formatTime(minutes: number | null): string {
 export default function HomeScreen() {
   const battery = useBatteryMonitor();
   const [isLowPowerMode, setIsLowPowerMode] = useState(false);
+  const [lowPowerDismissed, setLowPowerDismissed] = useState(false);
+  const [slowChargerDismissed, setSlowChargerDismissed] = useState(false);
   const thermal = useThermalState(
     battery.mode === "discharging" ? battery.drainRatePerMin : null,
     isLowPowerMode
   );
+
+  // Reset dismissals when mode changes (e.g. plug in / unplug)
+  const prevMode = useRef(battery.mode);
+  useEffect(() => {
+    if (prevMode.current !== battery.mode) {
+      setLowPowerDismissed(false);
+      setSlowChargerDismissed(false);
+      prevMode.current = battery.mode;
+    }
+  }, [battery.mode]);
 
   // Detect Low Power Mode
   useEffect(() => {
@@ -243,16 +255,43 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Low Power Mode suggestion — only shown when battery ≤20% and Low Power Mode is off */}
-        {battery.level <= 20 && !isLowPowerMode && battery.mode === "discharging" && (
-          <View style={styles.lowPowerSuggestion}>
-            <Text style={styles.lowPowerSuggestionIcon}>🐢</Text>
-            <View style={styles.lowPowerSuggestionText}>
-              <Text style={styles.lowPowerSuggestionTitle}>Enable Low Power Mode</Text>
-              <Text style={styles.lowPowerSuggestionBody}>
+        {/* Low Power Mode suggestion — only shown when battery ≤20%, Low Power Mode is off, and not dismissed */}
+        {battery.level <= 20 && !isLowPowerMode && battery.mode === "discharging" && !lowPowerDismissed && (
+          <View style={styles.suggestionCard}>
+            <Text style={styles.suggestionIcon}>🐢</Text>
+            <View style={styles.suggestionText}>
+              <Text style={styles.suggestionTitle}>Enable Low Power Mode</Text>
+              <Text style={styles.suggestionBody}>
                 Your battery is low. Go to Settings → Battery and turn on Low Power Mode to extend battery life.
               </Text>
             </View>
+            <TouchableOpacity
+              style={styles.suggestionDismiss}
+              onPress={() => setLowPowerDismissed(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.suggestionDismissText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Slow charger tip — only shown when charging slowly and not dismissed */}
+        {isCharging && battery.mode !== "full" && battery.chargeRatePerMin !== null && battery.chargeRatePerMin < 0.2 && !slowChargerDismissed && (
+          <View style={[styles.suggestionCard, styles.suggestionCardBlue]}>
+            <Text style={styles.suggestionIcon}>🔌</Text>
+            <View style={styles.suggestionText}>
+              <Text style={[styles.suggestionTitle, styles.suggestionTitleBlue]}>Slow Charger Detected</Text>
+              <Text style={[styles.suggestionBody, styles.suggestionBodyBlue]}>
+                Charging at less than 0.2%/min. Try a higher-wattage charger or a different cable for faster charging.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.suggestionDismiss}
+              onPress={() => setSlowChargerDismissed(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.suggestionDismissText}>✕</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -503,8 +542,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  // Low Power Mode suggestion card (shown at ≤20%)
-  lowPowerSuggestion: {
+  // Shared suggestion card (Low Power Mode + Slow Charger)
+  suggestionCard: {
     marginHorizontal: 16,
     marginVertical: 8,
     backgroundColor: "#1A1200",
@@ -517,23 +556,44 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
-  lowPowerSuggestionIcon: {
+  suggestionCardBlue: {
+    backgroundColor: "#001A2A",
+    borderColor: "#3B82F644",
+  },
+  suggestionIcon: {
     fontSize: 22,
     marginTop: 1,
   },
-  lowPowerSuggestionText: {
+  suggestionText: {
     flex: 1,
     gap: 4,
   },
-  lowPowerSuggestionTitle: {
+  suggestionTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#EAB308",
   },
-  lowPowerSuggestionBody: {
+  suggestionTitleBlue: {
+    color: "#60A5FA",
+  },
+  suggestionBody: {
     fontSize: 12,
     color: "#A89040",
     fontWeight: "500",
     lineHeight: 18,
+  },
+  suggestionBodyBlue: {
+    color: "#5B8DB8",
+  },
+  suggestionDismiss: {
+    paddingLeft: 4,
+    paddingTop: 2,
+    alignSelf: "flex-start",
+  },
+  suggestionDismissText: {
+    fontSize: 16,
+    color: "#6B6B6B",
+    fontWeight: "400",
+    lineHeight: 20,
   },
 });
