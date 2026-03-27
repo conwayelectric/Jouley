@@ -75,3 +75,4 @@
 - [x] Guarantee globally unique discount codes using crypto random suffix (not derived from device ID alone)
 - [x] Add percentage labels at 5%, 10%, 25%, 75% tick marks on charging arc (matching 50% label style)
 - [x] Update arc labels to show 5%, 10%, 20%, 50%, 75% only (removed 25% and 100%)
+- [x] Fix gradient fade cap at the leading tip of the charging arc fill

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, Image, StyleSheet, Animated, Easing } from "react-native";
-import Svg, { Circle, Line, Defs, LinearGradient, Stop, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, Line, Path, Defs, LinearGradient, Stop, Text as SvgText } from "react-native-svg";
 import { BatteryMode } from "@/hooks/use-battery-monitor";
 
 const SIZE = 260;
@@ -28,7 +28,7 @@ function getRingColor(level: number, mode: BatteryMode): string {
   return COLOR_RED;
 }
 
-/** Convert polar angle (degrees, 0=right, clockwise) to SVG x,y */
+/** Convert polar angle (degrees, 0=right, clockwise) to SVG x,y on the arc centre-line */
 function polarToXY(angleDeg: number, r: number): { x: number; y: number } {
   const rad = (angleDeg * Math.PI) / 180;
   return {
@@ -38,7 +38,7 @@ function polarToXY(angleDeg: number, r: number): { x: number; y: number } {
 }
 
 /**
- * Build an SVG arc path for a partial circle.
+ * Build an SVG arc path for a partial circle (filled band).
  * startDeg / endDeg are in SVG coordinate space (0=right, clockwise).
  */
 function arcPath(startDeg: number, endDeg: number, r: number, strokeW: number): string {
@@ -107,20 +107,29 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const ringColor = getRingColor(level, mode);
 
   // Arc geometry
-  // START_DEG=135 in SVG space (0=right, clockwise), arc spans 270°
   const arcStartDeg = START_DEG;
   const arcEndDeg = START_DEG + ARC_DEG; // 405° = same as 45°
-
-  // Filled portion end angle
   const fillEndDeg = arcStartDeg + ARC_DEG * (level / 100);
 
-  // strokeDasharray approach for track (simpler, no path needed for track)
+  // strokeDasharray for the track circle
   const arcLength = CIRCUMFERENCE * ARC_RATIO;
   const filledLength = arcLength * (level / 100);
 
-  // Tick marks: at 5%, 10%, 20%, 30%, ... 100%
+  // Gradient fade cap: covers the last ~10% of the filled arc as a path
+  // The gradient runs from the solid ring colour → transparent, aligned to
+  // the tangent direction at the tip so it looks correct at any angle.
+  const FADE_PCT = 10; // how many percentage-points the fade covers
+  const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, level - 2));
+  const fadeStartDeg = arcStartDeg + ARC_DEG * ((level - fadeSpanPct) / 100);
+  const fadePath = level > 2 ? arcPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE) : null;
+
+  // Gradient endpoints: from the midpoint of the fade-start edge → midpoint of tip edge
+  // This aligns the gradient along the arc's local tangent direction.
+  const gradStart = polarToXY(fadeStartDeg, RADIUS);
+  const gradEnd   = polarToXY(fillEndDeg, RADIUS);
+
+  // Tick marks
   const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-  const TICK_INNER_OFFSET = STROKE / 2 + 4;  // inside the arc
   const TICK_LENGTH = 6;
 
   return (
@@ -136,10 +145,21 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
         <Animated.View style={[styles.svgWrapper, { opacity: criticalOpacity }]}>
           <Svg width={SIZE} height={SIZE}>
             <Defs>
-              {/* Gradient for the leading tip of the fill arc — fades to transparent */}
-              <LinearGradient id="tipFade" x1="0" y1="0" x2="1" y2="0">
+              {/*
+                Gradient aligned along the arc tip: x1/y1 = fade start point,
+                x2/y2 = tip end point, expressed as fractions of the SVG viewport.
+                This makes the gradient direction match the actual arc direction.
+              */}
+              <LinearGradient
+                id="tipFade"
+                x1={`${(gradStart.x / SIZE) * 100}%`}
+                y1={`${(gradStart.y / SIZE) * 100}%`}
+                x2={`${(gradEnd.x / SIZE) * 100}%`}
+                y2={`${(gradEnd.y / SIZE) * 100}%`}
+                gradientUnits="userSpaceOnUse"
+              >
                 <Stop offset="0" stopColor={ringColor} stopOpacity="1" />
-                <Stop offset="0.7" stopColor={ringColor} stopOpacity="1" />
+                <Stop offset="0.6" stopColor={ringColor} stopOpacity="0.8" />
                 <Stop offset="1" stopColor={ringColor} stopOpacity="0" />
               </LinearGradient>
             </Defs>
@@ -172,36 +192,19 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               />
             )}
 
-            {/* Gradient fade cap at the leading tip — a short arc segment at the tip */}
-            {level > 2 && (
-              (() => {
-                // Draw a short arc segment at the leading edge of the fill,
-                // covering the last ~8% of the filled arc, using gradient stroke.
-                const fadeLengthPct = Math.min(8, level * 0.4);
-                const fadeStartPct = level - fadeLengthPct;
-                const fadeFilledLength = arcLength * (level / 100);
-                const fadeStartLength = arcLength * (fadeStartPct / 100);
-                const fadeSectionLength = fadeFilledLength - fadeStartLength;
-
-                // We render this as a separate Circle with dashoffset to start at fadeStartLength
-                return (
-                  <Circle
-                    cx={CX}
-                    cy={CY}
-                    r={RADIUS}
-                    stroke={`url(#tipFade)`}
-                    strokeWidth={STROKE}
-                    fill="none"
-                    strokeDasharray={`${fadeSectionLength} ${CIRCUMFERENCE}`}
-                    strokeDashoffset={-fadeStartLength}
-                    strokeLinecap="butt"
-                    transform={`rotate(${START_DEG} ${CX} ${CY})`}
-                  />
-                );
-              })()
+            {/*
+              Gradient fade cap — rendered as a filled path arc segment so the
+              gradient direction can be precisely aligned to the tip angle.
+              Drawn on top of the solid fill arc to blend the leading edge.
+            */}
+            {fadePath && (
+              <Path
+                d={fadePath}
+                fill={`url(#tipFade)`}
+              />
             )}
 
-            {/* Inner tick marks + labels at 25/50/75/100% */}
+            {/* Inner tick marks + labels */}
             {tickPercents.map((pct) => {
               const tickDeg = arcStartDeg + ARC_DEG * (pct / 100);
               const tickRad = (tickDeg * Math.PI) / 180;
@@ -212,7 +215,6 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               const x2 = CX + outerR * Math.cos(tickRad);
               const y2 = CY + outerR * Math.sin(tickRad);
               const isActive = pct <= level;
-              // Label positions — placed further inside the ring
               const showLabel = pct === 5 || pct === 10 || pct === 20 || pct === 50 || pct === 75 || pct === 100;
               const labelR = innerR - TICK_LENGTH - 10;
               const lx = CX + labelR * Math.cos(tickRad);
