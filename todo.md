@@ -69,3 +69,6 @@
 - [x] Add percentage labels at 25/50/75/100% tick marks on battery ring
 - [x] Persist suggestion card dismissals to AsyncStorage
 - [x] Add share button at bottom of dashboard with custom message and platform-aware App Store / Play Store link
+- [x] Shopify discount code: backend API endpoint to create unique 15% off code per user
+- [x] Shopify discount code: client-side hook to generate/store code on first launch
+- [x] Shopify discount code: dashboard card showing code + expiry, hidden after 30 days

@@ -22,6 +22,8 @@ import { BatteryRing } from "@/components/battery-ring";
 import { ChargingMilestones } from "@/components/charging-milestones";
 import { StatsRow } from "@/components/stats-row";
 import { ThermalGauge } from "@/components/thermal-gauge";
+import { useDiscountCode } from "@/hooks/use-discount-code";
+import * as Clipboard from "expo-clipboard";
 
 // Notifications only appear as native pop-ups when the app is backgrounded or closed.
 // When the app is open, the dashboard shows live minutes remaining instead.
@@ -57,6 +59,9 @@ export default function HomeScreen() {
       if (pairs[1][1] === "1") setSlowChargerDismissed(true);
     }).catch(() => {});
   }, []);
+  const discount = useDiscountCode();
+  const [discountCopied, setDiscountCopied] = useState(false);
+
   const thermal = useThermalState(
     battery.mode === "discharging" ? battery.drainRatePerMin : null,
     isLowPowerMode
@@ -313,6 +318,39 @@ export default function HomeScreen() {
             >
               <Text style={styles.suggestionDismissText}>✕</Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Discount Code Card — shown until code expires (30 days after generation) */}
+        {!discount.isLoading && discount.code && !discount.isExpired && (
+          <View style={styles.discountCard}>
+            <View style={styles.discountHeader}>
+              <Text style={styles.discountLabel}>YOUR EXCLUSIVE DISCOUNT</Text>
+              {discount.expiresAt && (
+                <Text style={styles.discountExpiry}>
+                  Expires {discount.expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </Text>
+              )}
+            </View>
+            <View style={styles.discountCodeRow}>
+              <Text style={styles.discountCode}>{discount.code}</Text>
+              <TouchableOpacity
+                style={styles.discountCopyBtn}
+                onPress={async () => {
+                  if (discount.code) {
+                    await Clipboard.setStringAsync(discount.code);
+                    setDiscountCopied(true);
+                    setTimeout(() => setDiscountCopied(false), 2000);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.discountCopyText}>{discountCopied ? "✓ Copied" : "Copy"}</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.discountBody}>
+              15% off your next Conway Electric purchase. Single-use code — valid for 30 days.
+            </Text>
           </View>
         )}
 
@@ -634,6 +672,67 @@ const styles = StyleSheet.create({
     color: "#6B6B6B",
     fontWeight: "400",
     lineHeight: 20,
+  },
+
+  // Discount code card
+  discountCard: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    backgroundColor: "#0D1F0D",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#22C55E55",
+    padding: 18,
+    gap: 10,
+  },
+  discountHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  discountLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 2,
+    color: "#22C55E",
+  },
+  discountExpiry: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#6B6B6B",
+    letterSpacing: 0.5,
+  },
+  discountCodeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  discountCode: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    letterSpacing: 3,
+    flex: 1,
+  },
+  discountCopyBtn: {
+    backgroundColor: "#22C55E22",
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "#22C55E55",
+  },
+  discountCopyText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#22C55E",
+    letterSpacing: 0.5,
+  },
+  discountBody: {
+    fontSize: 12,
+    color: "#5A8A5A",
+    fontWeight: "500",
+    lineHeight: 18,
   },
 
   // Share button
