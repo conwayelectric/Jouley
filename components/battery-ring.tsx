@@ -213,7 +213,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               const y2 = CY + outerR * Math.sin(tickRad);
               const isActive = pct <= level;
               // Label positions — placed further inside the ring
-              const showLabel = pct === 5 || pct === 10 || pct === 25 || pct === 50 || pct === 75 || pct === 100;
+              const showLabel = pct === 5 || pct === 10 || pct === 20 || pct === 50 || pct === 75;
               const labelR = innerR - TICK_LENGTH - 10;
               const lx = CX + labelR * Math.cos(tickRad);
               const ly = CY + labelR * Math.sin(tickRad);
