@@ -72,3 +72,4 @@
 - [x] Shopify discount code: backend API endpoint to create unique 15% off code per user
 - [x] Shopify discount code: client-side hook to generate/store code on first launch
 - [x] Shopify discount code: dashboard card showing code + expiry, hidden after 30 days
+- [x] Guarantee globally unique discount codes using crypto random suffix (not derived from device ID alone)

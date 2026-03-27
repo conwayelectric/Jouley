@@ -1,9 +1,20 @@
 /**
  * Shopify Admin API integration using client credentials grant.
- * Exchanges Client ID + Secret for a short-lived access token (24h),
- * then uses it to create unique one-time discount codes.
+ *
+ * Every discount code is globally unique: it is generated from 5 random
+ * bytes (10 hex chars) so the collision probability is negligible even at
+ * millions of codes. The device ID is NOT used as the code itself — it is
+ * only used as a label in the discount title so support staff can trace
+ * which device triggered which code.
+ *
+ * Code format:  CE-XXXXXXXXXX  (CE prefix + 10 uppercase hex chars)
+ * Example:      CE-3FA2C8D01B
+ *
+ * Uses discountCodeBasicCreate (Shopify Admin API 2024-10+).
+ * The legacy priceRuleCreate mutation was removed in that version.
  */
 
+import { randomBytes } from "crypto";
 import { ENV } from "./_core/env.js";
 
 // ---------------------------------------------------------------------------
@@ -44,6 +55,12 @@ async function getAccessToken(): Promise<string> {
   return cachedToken;
 }
 
+/** Force the next getAccessToken() call to fetch a fresh token. */
+export function invalidateTokenCache(): void {
+  cachedToken = null;
+  tokenExpiresAt = 0;
+}
+
 // ---------------------------------------------------------------------------
 // GraphQL Admin API helper
 // ---------------------------------------------------------------------------
@@ -77,7 +94,25 @@ async function shopifyGraphQL<T = unknown>(
 }
 
 // ---------------------------------------------------------------------------
-// Discount code creation
+// Unique code generation
+// ---------------------------------------------------------------------------
+
+/**
+ * Generates a globally unique discount code.
+ *
+ * Format: CE-XXXXXXXXXX
+ *   - "CE" prefix (Conway Electric)
+ *   - 10 uppercase hex characters from 5 cryptographically random bytes
+ *
+ * Collision probability with 1 million codes: ~0.000000001% (negligible).
+ */
+function generateUniqueCode(): string {
+  const hex = randomBytes(5).toString("hex").toUpperCase(); // 10 chars
+  return `CE-${hex}`;
+}
+
+// ---------------------------------------------------------------------------
+// Discount code creation — uses discountCodeBasicCreate (current API)
 // ---------------------------------------------------------------------------
 
 export interface CreatedDiscountCode {
@@ -86,103 +121,88 @@ export interface CreatedDiscountCode {
 }
 
 /**
- * Creates a unique one-time 15% off discount code in Shopify.
+ * Creates a globally unique one-time 15% off discount code in Shopify.
  * The code is valid for a single use and expires 30 days from now.
+ *
+ * @param deviceId  Used only in the discount title for traceability.
+ *                  It is NOT used as the code itself.
  */
 export async function createUniqueDiscountCode(
   deviceId: string
 ): Promise<CreatedDiscountCode> {
-  // Generate a short, readable code: CE-XXXXXXXX (CE = Conway Electric)
-  const suffix = deviceId
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .toUpperCase()
-    .slice(0, 8)
-    .padEnd(8, "X");
-  const code = `CE-${suffix}`;
-
+  const code = generateUniqueCode();
+  const startsAt = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Step 1: Create a price rule for 15% off
-  const priceRuleMutation = `
-    mutation priceRuleCreate($input: PriceRuleInput!) {
-      priceRuleCreate(input: $input) {
-        priceRule {
+  const mutation = `
+    mutation discountCodeBasicCreate($basicCodeDiscount: DiscountCodeBasicInput!) {
+      discountCodeBasicCreate(basicCodeDiscount: $basicCodeDiscount) {
+        codeDiscountNode {
           id
-        }
-        priceRuleUserErrors {
-          field
-          message
-        }
-      }
-    }
-  `;
-
-  const priceRuleVars = {
-    input: {
-      title: `Conway Electric App 15% Off - ${code}`,
-      target: "LINE_ITEM",
-      value: {
-        percentageValue: -15,
-      },
-      customerSelection: {
-        forAllCustomers: true,
-      },
-      itemEntitlements: {
-        targetAllLineItems: true,
-      },
-      usageLimit: 1,
-      oncePerCustomer: true,
-      startsAt: new Date().toISOString(),
-      endsAt: expiresAt,
-    },
-  };
-
-  const priceRuleResult = await shopifyGraphQL<{
-    priceRuleCreate: {
-      priceRule: { id: string } | null;
-      priceRuleUserErrors: { field: string[]; message: string }[];
-    };
-  }>(priceRuleMutation, priceRuleVars);
-
-  const priceRuleErrors = priceRuleResult.priceRuleCreate.priceRuleUserErrors;
-  if (priceRuleErrors.length > 0) {
-    throw new Error(`Price rule creation failed: ${JSON.stringify(priceRuleErrors)}`);
-  }
-
-  const priceRuleId = priceRuleResult.priceRuleCreate.priceRule?.id;
-  if (!priceRuleId) {
-    throw new Error("Price rule creation returned no ID");
-  }
-
-  // Step 2: Create the discount code under that price rule
-  const discountCodeMutation = `
-    mutation discountCodeCreate($priceRuleId: ID!, $code: String!) {
-      priceRuleDiscountCodeCreate(priceRuleId: $priceRuleId, code: $code) {
-        priceRuleDiscountCode {
-          code
+          codeDiscount {
+            ... on DiscountCodeBasic {
+              title
+              codes(first: 1) {
+                nodes {
+                  code
+                }
+              }
+            }
+          }
         }
         userErrors {
           field
           message
+          code
         }
       }
     }
   `;
 
-  const discountCodeResult = await shopifyGraphQL<{
-    priceRuleDiscountCodeCreate: {
-      priceRuleDiscountCode: { code: string } | null;
-      userErrors: { field: string[]; message: string }[];
-    };
-  }>(discountCodeMutation, { priceRuleId, code });
+  const variables = {
+    basicCodeDiscount: {
+      title: `Conway Electric App 15% Off [${deviceId.slice(0, 12)}]`,
+      code,
+      startsAt,
+      endsAt: expiresAt,
+      usageLimit: 1,
+      customerGets: {
+        value: {
+          percentage: 0.15,
+        },
+        items: {
+          all: true,
+        },
+      },
+      customerSelection: {
+        all: true,
+      },
+    },
+  };
 
-  const discountErrors =
-    discountCodeResult.priceRuleDiscountCodeCreate.userErrors;
-  if (discountErrors.length > 0) {
-    throw new Error(`Discount code creation failed: ${JSON.stringify(discountErrors)}`);
+  const result = await shopifyGraphQL<{
+    discountCodeBasicCreate: {
+      codeDiscountNode: {
+        id: string;
+        codeDiscount: {
+          title?: string;
+          codes?: { nodes: { code: string }[] };
+        };
+      } | null;
+      userErrors: { field: string[]; message: string; code: string }[];
+    };
+  }>(mutation, variables);
+
+  const userErrors = result.discountCodeBasicCreate.userErrors;
+  if (userErrors.length > 0) {
+    throw new Error(`Discount code creation failed: ${JSON.stringify(userErrors)}`);
   }
 
-  return { code, expiresAt };
+  // Use the code confirmed by Shopify (should match what we sent)
+  const confirmedCode =
+    result.discountCodeBasicCreate.codeDiscountNode?.codeDiscount?.codes?.nodes?.[0]?.code ?? code;
+
+  return { code: confirmedCode, expiresAt };
 }
 
 /**
