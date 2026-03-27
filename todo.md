@@ -73,3 +73,4 @@
 - [x] Shopify discount code: client-side hook to generate/store code on first launch
 - [x] Shopify discount code: dashboard card showing code + expiry, hidden after 30 days
 - [x] Guarantee globally unique discount codes using crypto random suffix (not derived from device ID alone)
+- [x] Add percentage labels at 5%, 10%, 25%, 75% tick marks on charging arc (matching 50% label style)
