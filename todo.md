@@ -80,3 +80,4 @@
 - [x] Fix gradient fade cap not visible on device
 - [x] Apply gradient along entire colored arc fill bar (not just fade cap)
 - [x] Offset 75% label left so it doesn't overlap the tick mark
+- [x] Fix arc gradient: solid fill bar + 5% fade-to-transparent cap at the leading tip only
