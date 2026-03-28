@@ -78,3 +78,5 @@
 - [x] Fix gradient fade cap at the leading tip of the charging arc fill
 - [x] Fix missing 75% label on charging arc tick mark
 - [x] Fix gradient fade cap not visible on device
+- [x] Apply gradient along entire colored arc fill bar (not just fade cap)
+- [x] Offset 75% label left so it doesn't overlap the tick mark
