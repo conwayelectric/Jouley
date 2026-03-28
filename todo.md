@@ -76,3 +76,5 @@
 - [x] Add percentage labels at 5%, 10%, 25%, 75% tick marks on charging arc (matching 50% label style)
 - [x] Update arc labels to show 5%, 10%, 20%, 50%, 75% only (removed 25% and 100%)
 - [x] Fix gradient fade cap at the leading tip of the charging arc fill
+- [x] Fix missing 75% label on charging arc tick mark
+- [x] Fix gradient fade cap not visible on device

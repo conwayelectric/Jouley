@@ -128,8 +128,8 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const gradStart = polarToXY(fadeStartDeg, RADIUS);
   const gradEnd   = polarToXY(fillEndDeg, RADIUS);
 
-  // Tick marks
-  const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  // Tick marks — 75 is explicitly included so its label renders
+  const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 90, 100];
   const TICK_LENGTH = 6;
 
   return (
@@ -152,10 +152,10 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               */}
               <LinearGradient
                 id="tipFade"
-                x1={`${(gradStart.x / SIZE) * 100}%`}
-                y1={`${(gradStart.y / SIZE) * 100}%`}
-                x2={`${(gradEnd.x / SIZE) * 100}%`}
-                y2={`${(gradEnd.y / SIZE) * 100}%`}
+                x1={gradStart.x}
+                y1={gradStart.y}
+                x2={gradEnd.x}
+                y2={gradEnd.y}
                 gradientUnits="userSpaceOnUse"
               >
                 <Stop offset="0" stopColor={ringColor} stopOpacity="1" />
