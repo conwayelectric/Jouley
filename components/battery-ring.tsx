@@ -214,14 +214,9 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   // Animated portion (charging only): from windowStart to sweepTip
   const animatedSegments = isCharging ? buildArcSegments(windowStart, sweepTip) : [];
 
-  // Tip position for the fade cap
+  // Tip position (used for future cap logic if needed)
   const tipPct = isCharging ? sweepTip : effectiveLevel;
-  const FADE_PCT = 5;
-  const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, tipPct));
   const fillEndDeg = START_DEG + ARC_DEG * (tipPct / 100);
-  const fadeStartDeg = START_DEG + ARC_DEG * ((tipPct - fadeSpanPct) / 100);
-  const gradTipStart = polarToXY(fadeStartDeg, RADIUS);
-  const gradTipEnd = polarToXY(fillEndDeg, RADIUS);
   const tipColor = colorToString(interpolateColor(Math.max(0, tipPct)));
 
   // Tick marks — 80 included, drawn in Layer 1 (behind arc)

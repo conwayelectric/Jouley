@@ -25,7 +25,6 @@ const ZONE_LABELS: Record<ThermalZone, string> = {
 };
 
 // Tick positions as fractions of the bar width (0–1)
-// Matches: COOL | WARM | HOT | CRITICAL zones
 const TICKS = [0, 0.25, 0.5, 0.75, 1.0];
 const TICK_LABELS = ["C", "W", "H", "!", ""];
 
@@ -45,16 +44,15 @@ export function ThermalGauge({ value, zone, label }: ThermalGaugeProps) {
 
   return (
     <View style={styles.container}>
-      {/* Header row */}
-      <View style={styles.headerRow}>
-        <Text style={styles.headerLabel}>DEVICE TEMP</Text>
-        <Text style={[styles.zoneLabel, { color: activeColor }]}>
-          {ZONE_LABELS[zone]}
-          {label ? `  ·  ${label}` : ""}
-        </Text>
-      </View>
+      {/* Row 1: Centered "DEVICE TEMP" title */}
+      <Text style={styles.headerLabel}>DEVICE TEMP</Text>
 
-      {/* Gauge bar */}
+      {/* Row 2: Colored zone label + optional detail, centered, below title */}
+      <Text style={[styles.zoneLabel, { color: activeColor }]} numberOfLines={1}>
+        {ZONE_LABELS[zone]}{label ? `  ·  ${label}` : ""}
+      </Text>
+
+      {/* Row 3: Gauge bar */}
       <View style={styles.gaugeWrapper}>
         {/* Background track — segmented colour zones */}
         <View style={styles.track}>
@@ -100,7 +98,7 @@ export function ThermalGauge({ value, zone, label }: ThermalGaugeProps) {
         ))}
       </View>
 
-      {/* Tick labels row */}
+      {/* Row 4: Tick labels */}
       <View style={styles.tickLabelRow}>
         {TICK_LABELS.map((lbl, i) => (
           <Text
@@ -115,7 +113,7 @@ export function ThermalGauge({ value, zone, label }: ThermalGaugeProps) {
         ))}
       </View>
 
-      {/* Zone description */}
+      {/* Row 5: Zone description */}
       <Text style={[styles.zoneDescription, { color: activeColor }]}>
         {zone === "cool" && "Normal operating temperature — battery impact minimal"}
         {zone === "warm" && "Elevated temperature — slight increase in drain rate"}
@@ -135,23 +133,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
     padding: 14,
-    gap: 8,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    gap: 6,
   },
   headerLabel: {
     fontSize: 10,
     fontWeight: "700",
     color: "#9CA3AF",
     letterSpacing: 1.5,
+    textAlign: "center",
   },
   zoneLabel: {
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1.5,
+    textAlign: "center",
   },
   gaugeWrapper: {
     height: 28,
