@@ -22,19 +22,20 @@ const COLOR_TRACK = "#E5E7EB";
 //
 // Each blend zone spans 8 percentage points centered on the boundary.
 // Outside blend zones the color is held solid.
-// Gradient mirrors the red→orange pattern for every transition:
+// Gradient zone map (each blend is 12pts wide, centered on the boundary):
 //   red:    0–16% solid, 16–28% blend → orange
-//   orange: 28–50% solid, 50–62% blend → yellow
-//   yellow: 62–75% solid, 75–87% blend → green
-//   green:  87–100% solid
+//   orange: 28–44% solid, 44–56% blend → yellow  (← centered on 50%)
+//   yellow: 56–69% solid, 69–81% blend → green
+//   green:  81–100% solid
+// Yellow = #FFE135 (r:255, g:225, b:53)
 const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
   { pct: 0,   r: 220, g: 38,  b: 38  }, // red (start)
   { pct: 16,  r: 220, g: 38,  b: 38  }, // red solid until here
-  { pct: 28,  r: 234, g: 88,  b: 12  }, // orange (blend from red complete — 12pt blend)
-  { pct: 50,  r: 234, g: 88,  b: 12  }, // orange solid until here
-  { pct: 62,  r: 202, g: 138, b: 4   }, // yellow (blend from orange complete — 12pt blend)
-  { pct: 75,  r: 202, g: 138, b: 4   }, // yellow solid until here
-  { pct: 87,  r: 22,  g: 163, b: 74  }, // green  (blend from yellow complete — 12pt blend)
+  { pct: 28,  r: 234, g: 88,  b: 12  }, // orange (blend from red complete)
+  { pct: 44,  r: 234, g: 88,  b: 12  }, // orange solid until here — blend to yellow begins
+  { pct: 56,  r: 255, g: 225, b: 53  }, // #FFE135 yellow (blend complete — centered on 50%)
+  { pct: 69,  r: 255, g: 225, b: 53  }, // yellow solid until here — blend to green begins
+  { pct: 81,  r: 22,  g: 163, b: 74  }, // green  (blend from yellow complete)
   { pct: 100, r: 22,  g: 163, b: 74  }, // green  (hold to end)
 ];
 

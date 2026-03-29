@@ -10,6 +10,59 @@ function formatMinutes(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+// Mirror the same gradient stops as battery-ring.tsx
+// red:    0–16% solid, 16–28% blend → orange
+// orange: 28–44% solid, 44–56% blend → yellow (#FFE135)
+// yellow: 56–69% solid, 69–81% blend → green
+// green:  81–100% solid
+const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
+  { pct: 0,   r: 220, g: 38,  b: 38  },
+  { pct: 16,  r: 220, g: 38,  b: 38  },
+  { pct: 28,  r: 234, g: 88,  b: 12  },
+  { pct: 44,  r: 234, g: 88,  b: 12  },
+  { pct: 56,  r: 255, g: 225, b: 53  },
+  { pct: 69,  r: 255, g: 225, b: 53  },
+  { pct: 81,  r: 22,  g: 163, b: 74  },
+  { pct: 100, r: 22,  g: 163, b: 74  },
+];
+
+function interpolateColor(pct: number): string {
+  let lo = GRADIENT_STOPS[0];
+  let hi = GRADIENT_STOPS[GRADIENT_STOPS.length - 1];
+  for (let i = 0; i < GRADIENT_STOPS.length - 1; i++) {
+    if (pct >= GRADIENT_STOPS[i].pct && pct <= GRADIENT_STOPS[i + 1].pct) {
+      lo = GRADIENT_STOPS[i];
+      hi = GRADIENT_STOPS[i + 1];
+      break;
+    }
+  }
+  const span = hi.pct - lo.pct;
+  const t = span === 0 ? 0 : (pct - lo.pct) / span;
+  const r = Math.round(lo.r + t * (hi.r - lo.r));
+  const g = Math.round(lo.g + t * (hi.g - lo.g));
+  const b = Math.round(lo.b + t * (hi.b - lo.b));
+  return `rgb(${r},${g},${b})`;
+}
+
+// Darken a color slightly for border/text use
+function darkenColor(pct: number): string {
+  let lo = GRADIENT_STOPS[0];
+  let hi = GRADIENT_STOPS[GRADIENT_STOPS.length - 1];
+  for (let i = 0; i < GRADIENT_STOPS.length - 1; i++) {
+    if (pct >= GRADIENT_STOPS[i].pct && pct <= GRADIENT_STOPS[i + 1].pct) {
+      lo = GRADIENT_STOPS[i];
+      hi = GRADIENT_STOPS[i + 1];
+      break;
+    }
+  }
+  const span = hi.pct - lo.pct;
+  const t = span === 0 ? 0 : (pct - lo.pct) / span;
+  const r = Math.round((lo.r + t * (hi.r - lo.r)) * 0.75);
+  const g = Math.round((lo.g + t * (hi.g - lo.g)) * 0.75);
+  const b = Math.round((lo.b + t * (hi.b - lo.b)) * 0.75);
+  return `rgb(${r},${g},${b})`;
+}
+
 interface ChargingMilestonesProps {
   milestones: MilestoneETA[];
   currentLevel: number;
@@ -26,33 +79,39 @@ export function ChargingMilestones({
       <Text style={styles.sectionTitle}>CHARGE MILESTONES</Text>
       <View style={styles.list}>
         {[...milestones].reverse().map((m, index, arr) => {
-          // In reversed order, "next" is the first unreached milestone from the bottom
-          // i.e. the last item in the reversed array that is unreached and whose successor (lower %) is reached
           const isNext = !m.reached && (index === arr.length - 1 || arr[index + 1].reached);
+          const milestoneColor = interpolateColor(m.percent);
+          const milestoneDark = darkenColor(m.percent);
+
           return (
             <View key={m.percent} style={styles.row}>
-              {/* Connector line — runs downward to next row */}
+              {/* Connector line */}
               {index < arr.length - 1 && (
                 <View
                   style={[
                     styles.connector,
-                    m.reached ? styles.connectorReached : styles.connectorPending,
+                    { backgroundColor: m.reached ? milestoneColor : "#E5E7EB" },
                   ]}
                 />
               )}
+
               {/* Dot */}
               <View
                 style={[
                   styles.dot,
                   m.reached
-                    ? styles.dotReached
+                    ? { backgroundColor: milestoneColor }
                     : isNext
-                    ? styles.dotNext
+                    ? { backgroundColor: milestoneColor, borderWidth: 2, borderColor: milestoneDark }
                     : styles.dotPending,
                 ]}
               >
                 {m.reached ? (
-                  <Text style={styles.checkmark}>✓</Text>
+                  <Text style={[
+                    styles.checkmark,
+                    // Use dark text on bright yellow, white on darker colors
+                    m.percent >= 44 && m.percent <= 69 ? { color: "#78350F" } : { color: "#FFFFFF" },
+                  ]}>✓</Text>
                 ) : (
                   <Text style={styles.dotPercent}>{m.percent}</Text>
                 )}
@@ -64,9 +123,9 @@ export function ChargingMilestones({
                   style={[
                     styles.percentLabel,
                     m.reached
-                      ? styles.textReached
+                      ? { color: milestoneColor }
                       : isNext
-                      ? styles.textNext
+                      ? { color: milestoneDark }
                       : styles.textPending,
                   ]}
                 >
@@ -126,12 +185,6 @@ const styles = StyleSheet.create({
     height: 20,
     zIndex: 0,
   },
-  connectorReached: {
-    backgroundColor: "#1D4ED8",
-  },
-  connectorPending: {
-    backgroundColor: "#E5E7EB",
-  },
   dot: {
     width: 40,
     height: 40,
@@ -140,21 +193,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 1,
   },
-  dotReached: {
-    backgroundColor: "#1D4ED8",
-  },
-  dotNext: {
-    backgroundColor: "#DC2626",
-    borderWidth: 2,
-    borderColor: "#F87171",
-  },
   dotPending: {
     backgroundColor: "#E5E7EB",
     borderWidth: 1,
     borderColor: "#D1D5DB",
   },
   checkmark: {
-    color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "800",
   },
@@ -172,12 +216,6 @@ const styles = StyleSheet.create({
   percentLabel: {
     fontSize: 16,
     fontWeight: "700",
-  },
-  textReached: {
-    color: "#1D4ED8",
-  },
-  textNext: {
-    color: "#111827",
   },
   textPending: {
     color: "#9CA3AF",

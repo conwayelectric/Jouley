@@ -90,3 +90,6 @@
 - [x] Fix orange-to-yellow gradient to mirror red-to-orange style (hold orange, then blend to yellow)
 - [x] Center percentage text color matches arc gradient color at current level
 - [x] Add Shop Now button linking to conwaygoods.com in discount code card
+- [x] Fix hard edge at 50%: smooth orange-to-yellow gradient blend centered on 50%
+- [x] Update yellow color to #FFE135 (brighter yellow)
+- [x] Charging milestone colors match arc gradient at each percentage level
