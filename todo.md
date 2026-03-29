@@ -98,5 +98,3 @@
 - [x] Replace scale pulse with color-stream animation: while charging, a brightness wave flows from (level-20%) to level% on the arc, repeating continuously
 - [x] Fix hard color lines at all zone transitions (20%, 50%, 75%) — all must be smooth gradients
 - [x] Remove "NOW" from Shop Now button text (change to "SHOP CONWAYGOODS.COM")
-- [x] Fix hard line at 75% on arc (yellow-to-green transition must be smooth)
-- [x] Charging animation: fill grows from (level-20%) to level%, resets, repeats — rest of arc static

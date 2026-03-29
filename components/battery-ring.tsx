@@ -15,8 +15,15 @@ const CY = SIZE / 2;
 const COLOR_TRACK = "#E5E7EB";
 
 // Gradient color zones — 15-point wide blends (7.5 each side of boundary)
-// Transitions are wide enough to be clearly visible as smooth gradients.
-// Tick marks are drawn OUTSIDE the arc so they never cross the colored fill.
+// so transitions are wide enough to be clearly visible as smooth gradients:
+//
+//  red    (#DC2626): 0–12.5% solid
+//  blend  12.5–27.5%: red → orange  (centered on 20%)
+//  orange (#EA580C): 27.5–42.5% solid
+//  blend  42.5–57.5%: orange → yellow  (centered on 50%)
+//  yellow (#FFE135): 57.5–67.5% solid
+//  blend  67.5–82.5%: yellow → green  (centered on 75%)
+//  green  (#16A34A): 82.5–100% solid
 const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
   { pct: 0,    r: 220, g: 38,  b: 38  }, // red start
   { pct: 12.5, r: 220, g: 38,  b: 38  }, // red solid end
@@ -50,6 +57,11 @@ function interpolateColor(pct: number): { r: number; g: number; b: number } {
 
 function colorToString(c: { r: number; g: number; b: number }): string {
   return `rgb(${c.r},${c.g},${c.b})`;
+}
+
+// Mix a color toward white by factor 0–1 (0 = original, 1 = white)
+function lighten(c: { r: number; g: number; b: number }, factor: number): string {
+  return `rgb(${Math.round(c.r + (255 - c.r) * factor)},${Math.round(c.g + (255 - c.g) * factor)},${Math.round(c.b + (255 - c.b) * factor)})`;
 }
 
 function getRingColorString(level: number, mode: BatteryMode): string {
@@ -86,63 +98,50 @@ function arcFillPath(startDeg: number, endDeg: number, r: number, strokeW: numbe
   ].join(" ");
 }
 
-// Build 1° segments for the static base fill (0 to level%).
-// While charging, the sweep window (windowStart to level%) is left empty
-// so the animated sweep layer renders on top of the track color.
-function buildBaseSegments(
+// Build 1° segments with optional sweep brightness overlay.
+// sweepProgress 0→1: the bright wave front moves from windowStart to windowEnd.
+// Segments inside the wave window get lightened by a bell-curve amount.
+function buildSegments(
   level: number,
+  sweepProgress: number, // 0–1, only used when charging
   isCharging: boolean
 ): Array<{ startDeg: number; endDeg: number; color: string }> {
   if (level <= 0) return [];
-  const SWEEP_WINDOW = 20;
-  const windowStart = Math.max(0, level - SWEEP_WINDOW);
-  // When charging, only render solid fill below the sweep window
-  const solidUpTo = isCharging ? windowStart : level;
-  if (solidUpTo <= 0) return [];
-
-  const fillDeg = ARC_DEG * (solidUpTo / 100);
+  const fillDeg = ARC_DEG * (level / 100);
   const segs: Array<{ startDeg: number; endDeg: number; color: string }> = [];
+
+  // Sweep window in percentage points
+  const SWEEP_WINDOW = 20;
+  const windowEnd = level; // top of sweep = current level
+  const windowStart = Math.max(0, level - SWEEP_WINDOW);
+  // The wave front position within the window (0 = bottom of window, 1 = top)
+  const waveFrontPct = windowStart + sweepProgress * (windowEnd - windowStart);
+
   let deg = 0;
   while (deg < fillDeg) {
     const segEnd = Math.min(deg + 1, fillDeg);
     const midPct = ((deg + segEnd) / 2 / ARC_DEG) * 100;
-    segs.push({
-      startDeg: START_DEG + deg,
-      endDeg: START_DEG + segEnd,
-      color: colorToString(interpolateColor(midPct)),
-    });
-    deg = segEnd;
-  }
-  return segs;
-}
+    const baseColor = interpolateColor(midPct);
 
-// Build 1° segments for the animated sweep fill.
-// sweepProgress 0→1: fill grows from windowStart to waveFront (which travels to level%).
-// When sweepProgress=1 the fill covers the full window; then it resets to 0.
-function buildSweepSegments(
-  level: number,
-  sweepProgress: number
-): Array<{ startDeg: number; endDeg: number; color: string }> {
-  const SWEEP_WINDOW = 20;
-  const windowStart = Math.max(0, level - SWEEP_WINDOW);
-  const waveFrontPct = windowStart + sweepProgress * (level - windowStart);
-  if (waveFrontPct <= windowStart) return [];
+    let color: string;
+    if (isCharging && midPct >= windowStart && midPct <= windowEnd) {
+      // Bell-curve brightness: peaks at the wave front, falls off behind it
+      const distFromFront = waveFrontPct - midPct; // positive = behind front
+      // Segments ahead of the front are dark (not yet lit), behind are fading
+      if (midPct > waveFrontPct) {
+        // Ahead of wave front — dim (unlit portion of window)
+        color = lighten(baseColor, 0.0);
+      } else {
+        // Behind wave front — bright at front, fading over 10 pts
+        const fadeDistance = Math.min(distFromFront / 10, 1);
+        const brightness = Math.max(0, 0.45 * (1 - fadeDistance));
+        color = lighten(baseColor, brightness);
+      }
+    } else {
+      color = colorToString(baseColor);
+    }
 
-  const startDegAbs = START_DEG + ARC_DEG * (windowStart / 100);
-  const endDegAbs = START_DEG + ARC_DEG * (waveFrontPct / 100);
-  const totalDeg = endDegAbs - startDegAbs;
-  if (totalDeg <= 0) return [];
-
-  const segs: Array<{ startDeg: number; endDeg: number; color: string }> = [];
-  let deg = 0;
-  while (deg < totalDeg) {
-    const segEnd = Math.min(deg + 1, totalDeg);
-    const midPct = windowStart + ((deg + segEnd) / 2 / ARC_DEG) * 100;
-    segs.push({
-      startDeg: startDegAbs + deg,
-      endDeg: startDegAbs + segEnd,
-      color: colorToString(interpolateColor(midPct)),
-    });
+    segs.push({ startDeg: START_DEG + deg, endDeg: START_DEG + segEnd, color });
     deg = segEnd;
   }
   return segs;
@@ -160,16 +159,16 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const criticalOpacity = useRef(new Animated.Value(1)).current;
   const [sweepProgress, setSweepProgress] = useState(0);
 
-  // Charging sweep: fill grows from (level-20%) to level%, resets, repeats
+  // Charging sweep animation: wave front travels from bottom to top of window, then resets
   useEffect(() => {
     if (mode === "charging") {
       const listener = sweepAnim.addListener(({ value }) => setSweepProgress(value));
       const loop = Animated.loop(
         Animated.timing(sweepAnim, {
           toValue: 1,
-          duration: 1800,
+          duration: 1500,
           easing: Easing.linear,
-          useNativeDriver: false,
+          useNativeDriver: false, // must be false — drives JS state
         })
       );
       loop.start();
@@ -204,27 +203,18 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const effectiveLevel = mode === "full" ? 100 : level;
   const isCharging = mode === "charging";
   const ringColor = getRingColorString(level, mode);
+  const segments = buildSegments(effectiveLevel, sweepProgress, isCharging);
 
-  const baseSegments = buildBaseSegments(effectiveLevel, isCharging);
-  const sweepSegments = isCharging ? buildSweepSegments(effectiveLevel, sweepProgress) : [];
-
-  // Tip fade cap: last 5% of arc fades to transparent (follows sweep tip when charging)
+  // Tip fade cap: last 5% of arc fades to transparent
   const FADE_PCT = 5;
-  const tipLevel = isCharging
-    ? Math.max(0, effectiveLevel - 20) + sweepProgress * Math.min(20, effectiveLevel)
-    : effectiveLevel;
-  const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, tipLevel));
-  const fillEndDeg = START_DEG + ARC_DEG * (tipLevel / 100);
-  const fadeStartDeg = START_DEG + ARC_DEG * ((tipLevel - fadeSpanPct) / 100);
+  const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, effectiveLevel));
+  const fillEndDeg = START_DEG + ARC_DEG * (effectiveLevel / 100);
+  const fadeStartDeg = START_DEG + ARC_DEG * ((effectiveLevel - fadeSpanPct) / 100);
   const gradTipStart = polarToXY(fadeStartDeg, RADIUS);
   const gradTipEnd = polarToXY(fillEndDeg, RADIUS);
-  const tipColor = colorToString(interpolateColor(tipLevel));
 
-  // Tick marks drawn OUTSIDE the arc (beyond outer edge) so they never cross the fill
   const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 90, 100];
   const TICK_LENGTH = 6;
-  // outerEdge = center of arc + half stroke width + small gap
-  const OUTER_EDGE = RADIUS + STROKE / 2 + 2;
 
   return (
     <View style={styles.container}>
@@ -239,8 +229,8 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               y2={gradTipEnd.y}
               gradientUnits="userSpaceOnUse"
             >
-              <Stop offset="0" stopColor={tipColor} stopOpacity="1" />
-              <Stop offset="1" stopColor={tipColor} stopOpacity="0" />
+              <Stop offset="0" stopColor={ringColor} stopOpacity="1" />
+              <Stop offset="1" stopColor={ringColor} stopOpacity="0" />
             </LinearGradient>
           </Defs>
 
@@ -255,10 +245,10 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             transform={`rotate(${START_DEG} ${CX} ${CY})`}
           />
 
-          {/* Static base fill (below sweep window when charging) */}
-          {baseSegments.map((seg, i) => (
+          {/* Gradient fill: 1° stroked segments */}
+          {segments.map((seg, i) => (
             <Path
-              key={`base-${i}`}
+              key={i}
               d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
               stroke={seg.color}
               strokeWidth={STROKE}
@@ -267,47 +257,35 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             />
           ))}
 
-          {/* Animated sweep fill (grows from windowStart to level% while charging) */}
-          {sweepSegments.map((seg, i) => (
-            <Path
-              key={`sweep-${i}`}
-              d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
-              stroke={seg.color}
-              strokeWidth={STROKE}
-              strokeLinecap="butt"
-              fill="none"
-            />
-          ))}
-
-          {/* Tip fade cap — follows the sweep front when charging */}
-          {tipLevel >= 2 && (
+          {/* Tip fade cap */}
+          {effectiveLevel >= 2 && (
             <Path
               d={arcFillPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE)}
               fill="url(#tipFade)"
             />
           )}
 
-          {/* Tick marks — drawn OUTSIDE the arc to avoid crossing the colored fill */}
+          {/* Tick marks + labels */}
           {tickPercents.map((pct) => {
             const tickDeg = START_DEG + ARC_DEG * (pct / 100);
             const tickRad = (tickDeg * Math.PI) / 180;
-            // Start at outer edge of arc, extend outward
-            const x1 = CX + OUTER_EDGE * Math.cos(tickRad);
-            const y1 = CY + OUTER_EDGE * Math.sin(tickRad);
-            const x2 = CX + (OUTER_EDGE + TICK_LENGTH) * Math.cos(tickRad);
-            const y2 = CY + (OUTER_EDGE + TICK_LENGTH) * Math.sin(tickRad);
+            const innerR = RADIUS - STROKE / 2 - 2;
+            const outerR = innerR - TICK_LENGTH;
+            const x1 = CX + innerR * Math.cos(tickRad);
+            const y1 = CY + innerR * Math.sin(tickRad);
+            const x2 = CX + outerR * Math.cos(tickRad);
+            const y2 = CY + outerR * Math.sin(tickRad);
             const isActive = pct <= effectiveLevel;
             const showLabel = pct === 5 || pct === 10 || pct === 20 || pct === 50 || pct === 75 || pct === 100;
 
-            const labelR = OUTER_EDGE + TICK_LENGTH + 10;
+            const labelR = innerR - TICK_LENGTH - 10;
             let lx = CX + labelR * Math.cos(tickRad);
             let ly = CY + labelR * Math.sin(tickRad);
 
-            // Nudge 75% label slightly counter-clockwise to avoid overlap with tick
             if (pct === 75) {
               const tangentRad = tickRad - Math.PI / 2;
-              lx += Math.cos(tangentRad) * 5;
-              ly += Math.sin(tangentRad) * 5;
+              lx += Math.cos(tangentRad) * 7;
+              ly += Math.sin(tangentRad) * 7;
             }
 
             return (
@@ -315,7 +293,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
                 <Line
                   x1={x1} y1={y1} x2={x2} y2={y2}
                   stroke={isActive ? "#555555" : "#BBBBBB"}
-                  strokeWidth={1.2}
+                  strokeWidth={pct % 10 === 0 ? 2 : 1.2}
                   strokeLinecap="butt"
                 />
                 {showLabel && (
