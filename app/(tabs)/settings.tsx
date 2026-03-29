@@ -269,6 +269,24 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Legal Section */}
+        <Text style={styles.sectionLabel}>LEGAL</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => Linking.openURL("https://conwaygoods.com/privacy")}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowText}>
+              <Text style={styles.rowTitle}>Privacy Policy</Text>
+              <Text style={styles.rowDesc}>
+                Read how Conway Electric handles your data.
+              </Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>CONWAY ELECTRIC · STAY CHARGED</Text>
@@ -456,6 +474,13 @@ const styles = StyleSheet.create({
   infoDivider: {
     height: 1,
     backgroundColor: "#E5E7EB",
+  },
+
+  chevron: {
+    fontSize: 22,
+    color: "#9CA3AF",
+    alignSelf: "center",
+    marginTop: 2,
   },
 
   footer: {
