@@ -222,7 +222,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const animStops = buildGradientStops(windowStart, sweepTip);
 
   // Tick marks
-  const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 90, 100];
+  const tickPercents = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100];
   const TICK_LENGTH = 6;
   const INNER_EDGE = RADIUS - STROKE / 2 - 1;
 
