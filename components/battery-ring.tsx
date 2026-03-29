@@ -166,7 +166,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
     } else {
       criticalOpacity.setValue(1);
     }
-  }, [mode, level <= 10]);
+  }, [mode, level]);
 
   const effectiveLevel = mode === "full" ? 100 : level;
   const isCharging = mode === "charging";
