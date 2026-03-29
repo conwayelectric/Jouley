@@ -98,3 +98,6 @@
 - [x] Replace scale pulse with color-stream animation: while charging, a brightness wave flows from (level-20%) to level% on the arc, repeating continuously
 - [x] Fix hard color lines at all zone transitions (20%, 50%, 75%) — all must be smooth gradients
 - [x] Remove "NOW" from Shop Now button text (change to "SHOP CONWAYGOODS.COM")
+- [x] Fix tick marks: gray color, no 80% tick, drawn on inner edge, 75% label not overlapping tick
+- [x] Remove hard line at 75%: tick must not cross the colored fill
+- [x] Charging animation: continuous fill grows from (level-20%) to level% with no gap on reset
