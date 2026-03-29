@@ -354,6 +354,33 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Power Save Recommendations */}
+        <View style={styles.powerSaveCard}>
+          <Text style={styles.powerSaveTitle}>⚡ POWER SAVE TIPS</Text>
+          <Text style={styles.powerSaveSubtitle}>Extend your battery life with these steps</Text>
+          <View style={styles.powerSaveDivider} />
+          {[
+            { icon: "🐢", tip: "Enable Low Power Mode", detail: "Settings → Battery → Low Power Mode. Reduces background activity and visual effects." },
+            { icon: "🌑", tip: "Use Dark Mode", detail: "Dark mode on OLED screens can reduce battery draw by up to 30% at full brightness." },
+            { icon: "📵", tip: "Close Background Apps", detail: "Swipe away apps you are not using. Background refresh consumes power even when idle." },
+            { icon: "📡", tip: "Turn Off Wi-Fi & Bluetooth When Unused", detail: "Both radios constantly scan for networks and devices. Disable them when not needed." },
+            { icon: "🔅", tip: "Lower Screen Brightness", detail: "The display is the single largest power consumer. Drop brightness to 50% or below." },
+            { icon: "🎬", tip: "Avoid Streaming Video", detail: "Video streaming keeps the screen on, the CPU busy, and the radio active simultaneously." },
+            { icon: "📍", tip: "Limit Location Services", detail: "Set apps to \"While Using\" only. GPS is one of the most power-intensive sensors." },
+            { icon: "🔔", tip: "Reduce Push Notifications", detail: "Each notification wakes the screen and radio. Disable non-essential app notifications." },
+            { icon: "✈️", tip: "Use Airplane Mode in Low Signal Areas", detail: "Searching for a weak signal drains battery fast. Use Airplane Mode + Wi-Fi instead." },
+            { icon: "🔄", tip: "Disable Auto-Updates & Background Refresh", detail: "Settings → General → Background App Refresh. Turn off for apps that don't need it." },
+          ].map(({ icon, tip, detail }, i) => (
+            <View key={i} style={styles.powerSaveRow}>
+              <Text style={styles.powerSaveIcon}>{icon}</Text>
+              <View style={styles.powerSaveText}>
+                <Text style={styles.powerSaveTip}>{tip}</Text>
+                <Text style={styles.powerSaveDetail}>{detail}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
         {/* Share Button */}
         <TouchableOpacity
           style={styles.shareButton}
@@ -761,5 +788,64 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
     letterSpacing: 2,
+  },
+
+  // Power Save Tips card
+  powerSaveCard: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    backgroundColor: "#F0F9FF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+    padding: 18,
+  },
+  powerSaveTitle: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 2,
+    color: "#0369A1",
+    marginBottom: 4,
+  },
+  powerSaveSubtitle: {
+    fontSize: 12,
+    color: "#0284C7",
+    fontWeight: "500",
+    marginBottom: 12,
+  },
+  powerSaveDivider: {
+    height: 1,
+    backgroundColor: "#BAE6FD",
+    marginBottom: 12,
+  },
+  powerSaveRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0F2FE",
+  },
+  powerSaveIcon: {
+    fontSize: 18,
+    width: 26,
+    textAlign: "center",
+    marginTop: 1,
+  },
+  powerSaveText: {
+    flex: 1,
+    gap: 2,
+  },
+  powerSaveTip: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0C4A6E",
+    lineHeight: 20,
+  },
+  powerSaveDetail: {
+    fontSize: 12,
+    color: "#0369A1",
+    lineHeight: 18,
+    fontWeight: "400",
   },
 });

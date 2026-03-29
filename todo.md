@@ -85,3 +85,5 @@
 - [x] Light mode replica: multi-color gradient arc (red→orange→yellow→green across full 270°)
 - [x] Light mode replica: audit all screens for white-background visibility
 - [x] Fix arc gradient: red 0–20%, smooth transitions between red/orange/yellow/green zones
+- [x] Fix arc gradient: yellow must start cleanly at 50% (no orange bleed past 50%)
+- [x] Add Power Save Recommendations card below discount code on dashboard

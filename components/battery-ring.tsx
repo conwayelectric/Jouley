@@ -14,26 +14,23 @@ const CX = SIZE / 2;
 const CY = SIZE / 2;
 const COLOR_TRACK = "#E5E7EB";
 
-// Zone colors — these are the exact colors at each boundary
-// 0%  → red
-// 20% → red (end of red zone)
-// 20% → orange (start of orange zone, blends from red)
-// 50% → orange (end of orange zone)
-// 50% → yellow (start of yellow zone, blends from orange)
-// 75% → yellow (end of yellow zone)
-// 75% → green (start of green zone, blends from yellow)
-// 100% → green
-
-// We interpolate between these colors per-segment so every transition is smooth.
+// Zone color boundaries (exact):
+// 0–20%   → red   (#DC2626)
+// 20–50%  → orange (#EA580C), blending from red at 20%
+// 50–75%  → yellow (#CA8A04), blending from orange at 50%
+// 75–100% → green  (#16A34A), blending from yellow at 75%
+//
+// Each blend zone spans 8 percentage points centered on the boundary.
+// Outside blend zones the color is held solid.
 const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
-  { pct: 0,   r: 220, g: 38,  b: 38  }, // #DC2626 red
-  { pct: 20,  r: 220, g: 38,  b: 38  }, // #DC2626 red (hold)
-  { pct: 35,  r: 234, g: 88,  b: 12  }, // #EA580C orange (blend zone)
-  { pct: 50,  r: 234, g: 88,  b: 12  }, // #EA580C orange (hold)
-  { pct: 63,  r: 202, g: 138, b: 4   }, // #CA8A04 yellow (blend zone)
-  { pct: 75,  r: 202, g: 138, b: 4   }, // #CA8A04 yellow (hold)
-  { pct: 88,  r: 22,  g: 163, b: 74  }, // #16A34A green (blend zone)
-  { pct: 100, r: 22,  g: 163, b: 74  }, // #16A34A green (hold)
+  { pct: 0,   r: 220, g: 38,  b: 38  }, // red (start)
+  { pct: 16,  r: 220, g: 38,  b: 38  }, // red solid until here
+  { pct: 24,  r: 234, g: 88,  b: 12  }, // orange (blend from red complete)
+  { pct: 38,  r: 234, g: 88,  b: 12  }, // orange solid until here — blend to yellow begins
+  { pct: 50,  r: 202, g: 138, b: 4   }, // yellow fully established AT 50%
+  { pct: 68,  r: 202, g: 138, b: 4   }, // yellow solid until here — blend to green begins
+  { pct: 78,  r: 22,  g: 163, b: 74  }, // green (blend from yellow complete)
+  { pct: 100, r: 22,  g: 163, b: 74  }, // green (hold to end)
 ];
 
 function interpolateColor(pct: number): string {
