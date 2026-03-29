@@ -351,6 +351,13 @@ export default function HomeScreen() {
             <Text style={styles.discountBody}>
               15% off your next Conway Electric purchase. Single-use code — valid for 30 days.
             </Text>
+            <TouchableOpacity
+              style={styles.shopNowBtn}
+              onPress={() => Linking.openURL("https://conwaygoods.com")}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.shopNowText}>🛍️ SHOP NOW AT CONWAYGOODS.COM</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -788,6 +795,22 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
     letterSpacing: 2,
+  },
+
+  // Shop Now button inside discount card
+  shopNowBtn: {
+    marginTop: 12,
+    backgroundColor: "#14532D",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  shopNowText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 1,
   },
 
   // Power Save Tips card

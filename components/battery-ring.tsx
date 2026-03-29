@@ -22,15 +22,20 @@ const COLOR_TRACK = "#E5E7EB";
 //
 // Each blend zone spans 8 percentage points centered on the boundary.
 // Outside blend zones the color is held solid.
+// Gradient mirrors the red→orange pattern for every transition:
+//   red:    0–16% solid, 16–28% blend → orange
+//   orange: 28–50% solid, 50–62% blend → yellow
+//   yellow: 62–75% solid, 75–87% blend → green
+//   green:  87–100% solid
 const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
   { pct: 0,   r: 220, g: 38,  b: 38  }, // red (start)
   { pct: 16,  r: 220, g: 38,  b: 38  }, // red solid until here
-  { pct: 24,  r: 234, g: 88,  b: 12  }, // orange (blend from red complete)
-  { pct: 38,  r: 234, g: 88,  b: 12  }, // orange solid until here — blend to yellow begins
-  { pct: 50,  r: 202, g: 138, b: 4   }, // yellow fully established AT 50%
-  { pct: 68,  r: 202, g: 138, b: 4   }, // yellow solid until here — blend to green begins
-  { pct: 78,  r: 22,  g: 163, b: 74  }, // green (blend from yellow complete)
-  { pct: 100, r: 22,  g: 163, b: 74  }, // green (hold to end)
+  { pct: 28,  r: 234, g: 88,  b: 12  }, // orange (blend from red complete — 12pt blend)
+  { pct: 50,  r: 234, g: 88,  b: 12  }, // orange solid until here
+  { pct: 62,  r: 202, g: 138, b: 4   }, // yellow (blend from orange complete — 12pt blend)
+  { pct: 75,  r: 202, g: 138, b: 4   }, // yellow solid until here
+  { pct: 87,  r: 22,  g: 163, b: 74  }, // green  (blend from yellow complete — 12pt blend)
+  { pct: 100, r: 22,  g: 163, b: 74  }, // green  (hold to end)
 ];
 
 function interpolateColor(pct: number): string {

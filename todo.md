@@ -87,3 +87,6 @@
 - [x] Fix arc gradient: red 0–20%, smooth transitions between red/orange/yellow/green zones
 - [x] Fix arc gradient: yellow must start cleanly at 50% (no orange bleed past 50%)
 - [x] Add Power Save Recommendations card below discount code on dashboard
+- [x] Fix orange-to-yellow gradient to mirror red-to-orange style (hold orange, then blend to yellow)
+- [x] Center percentage text color matches arc gradient color at current level
+- [x] Add Shop Now button linking to conwaygoods.com in discount code card
