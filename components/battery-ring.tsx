@@ -14,39 +14,36 @@ const CX = SIZE / 2;
 const CY = SIZE / 2;
 const COLOR_TRACK = "#E5E7EB";
 
-// Zone color boundaries (exact):
-// 0–20%   → red   (#DC2626)
-// 20–50%  → orange (#EA580C), blending from red at 20%
-// 50–75%  → yellow (#CA8A04), blending from orange at 50%
-// 75–100% → green  (#16A34A), blending from yellow at 75%
+// Gradient color zones with tight 10% total blend (5% each side of boundary):
 //
-// Each blend zone spans 8 percentage points centered on the boundary.
-// Outside blend zones the color is held solid.
-// Gradient zone map (each blend is 12pts wide, centered on the boundary):
-//   red:    0–16% solid, 16–28% blend → orange
-//   orange: 28–44% solid, 44–56% blend → yellow  (← centered on 50%)
-//   yellow: 56–69% solid, 69–81% blend → green
-//   green:  81–100% solid
-// Yellow = #FFE135 (r:255, g:225, b:53)
+//  red    (#DC2626): 0–20% solid
+//  blend  20–25%: red → orange
+//  orange (#EA580C): 25–45% solid
+//  blend  45–55%: orange → yellow
+//  yellow (#FFE135): 55–70% solid
+//  blend  70–80%: yellow → green
+//  green  (#16A34A): 80–100% solid
+//
+// This keeps each color zone visually distinct and the transitions short and sharp.
 const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
-  { pct: 0,   r: 220, g: 38,  b: 38  }, // red (start)
-  { pct: 16,  r: 220, g: 38,  b: 38  }, // red solid until here
-  { pct: 28,  r: 234, g: 88,  b: 12  }, // orange (blend from red complete)
-  { pct: 44,  r: 234, g: 88,  b: 12  }, // orange solid until here — blend to yellow begins
-  { pct: 56,  r: 255, g: 225, b: 53  }, // #FFE135 yellow (blend complete — centered on 50%)
-  { pct: 69,  r: 255, g: 225, b: 53  }, // yellow solid until here — blend to green begins
-  { pct: 81,  r: 22,  g: 163, b: 74  }, // green  (blend from yellow complete)
-  { pct: 100, r: 22,  g: 163, b: 74  }, // green  (hold to end)
+  { pct: 0,   r: 220, g: 38,  b: 38  }, // red solid start
+  { pct: 20,  r: 220, g: 38,  b: 38  }, // red solid end → blend begins
+  { pct: 25,  r: 234, g: 88,  b: 12  }, // orange solid start (blend from red complete)
+  { pct: 45,  r: 234, g: 88,  b: 12  }, // orange solid end → blend begins
+  { pct: 55,  r: 255, g: 225, b: 53  }, // yellow #FFE135 solid start (blend from orange complete)
+  { pct: 70,  r: 255, g: 225, b: 53  }, // yellow solid end → blend begins
+  { pct: 80,  r: 22,  g: 163, b: 74  }, // green solid start (blend from yellow complete)
+  { pct: 100, r: 22,  g: 163, b: 74  }, // green solid end
 ];
 
 function interpolateColor(pct: number): string {
-  // Find surrounding stops
-  let lo = GRADIENT_STOPS[0];
-  let hi = GRADIENT_STOPS[GRADIENT_STOPS.length - 1];
-  for (let i = 0; i < GRADIENT_STOPS.length - 1; i++) {
-    if (pct >= GRADIENT_STOPS[i].pct && pct <= GRADIENT_STOPS[i + 1].pct) {
-      lo = GRADIENT_STOPS[i];
-      hi = GRADIENT_STOPS[i + 1];
+  const stops = GRADIENT_STOPS;
+  let lo = stops[0];
+  let hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (pct >= stops[i].pct && pct <= stops[i + 1].pct) {
+      lo = stops[i];
+      hi = stops[i + 1];
       break;
     }
   }
@@ -68,7 +65,16 @@ function polarToXY(angleDeg: number, r: number): { x: number; y: number } {
   return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
 }
 
-function arcPath(startDeg: number, endDeg: number, r: number, strokeW: number): string {
+// Center-line arc path for stroked rendering (no fill seams)
+function arcStrokePath(startDeg: number, endDeg: number, r: number): string {
+  const s = polarToXY(startDeg, r);
+  const e = polarToXY(endDeg, r);
+  const largeArc = endDeg - startDeg > 180 ? 1 : 0;
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 1 ${e.x} ${e.y}`;
+}
+
+// Filled annular wedge path (used only for tip fade cap)
+function arcFillPath(startDeg: number, endDeg: number, r: number, strokeW: number): string {
   const inner = r - strokeW / 2;
   const outer = r + strokeW / 2;
   const s1 = polarToXY(startDeg, outer);
@@ -85,34 +91,19 @@ function arcPath(startDeg: number, endDeg: number, r: number, strokeW: number): 
   ].join(" ");
 }
 
-// Build stroked arc segments for the filled portion.
-// Using stroke (not fill) eliminates the seam artifact between adjacent filled paths.
-// Each segment is 1° wide for smooth color transitions.
-const SEGMENT_DEG = 1; // degrees per segment
+// 1° segments — each colored by interpolating at its midpoint percentage
 function buildSegments(level: number): Array<{ startDeg: number; endDeg: number; color: string }> {
   if (level <= 0) return [];
   const fillDeg = ARC_DEG * (level / 100);
   const segs: Array<{ startDeg: number; endDeg: number; color: string }> = [];
   let deg = 0;
   while (deg < fillDeg) {
-    const segEnd = Math.min(deg + SEGMENT_DEG, fillDeg);
+    const segEnd = Math.min(deg + 1, fillDeg);
     const midPct = ((deg + segEnd) / 2 / ARC_DEG) * 100;
-    segs.push({
-      startDeg: START_DEG + deg,
-      endDeg: START_DEG + segEnd,
-      color: interpolateColor(midPct),
-    });
+    segs.push({ startDeg: START_DEG + deg, endDeg: START_DEG + segEnd, color: interpolateColor(midPct) });
     deg = segEnd;
   }
   return segs;
-}
-
-// Build a simple arc path (center-line only) for stroked rendering
-function arcStrokePath(startDeg: number, endDeg: number, r: number): string {
-  const s = polarToXY(startDeg, r);
-  const e = polarToXY(endDeg, r);
-  const largeArc = endDeg - startDeg > 180 ? 1 : 0;
-  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 1 ${e.x} ${e.y}`;
 }
 
 interface BatteryRingProps {
@@ -158,32 +149,27 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
     }
   }, [mode, level <= 10]);
 
-  const ringColor = getRingColor(level, mode);
-  const segments = buildSegments(mode === "full" ? 100 : level);
-
-  // Tip fade cap: last 5% of the filled arc fades to transparent
-  const fillEndDeg = START_DEG + ARC_DEG * ((mode === "full" ? 100 : level) / 100);
-  const FADE_PCT = 5;
   const effectiveLevel = mode === "full" ? 100 : level;
-  const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, effectiveLevel));
-  const fadeStartDeg = START_DEG + ARC_DEG * ((effectiveLevel - fadeSpanPct) / 100);
-  const fadePath = effectiveLevel >= 2 ? arcPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE) : null;
-  const gradTipStart = polarToXY(fadeStartDeg, RADIUS);
-  const gradTipEnd   = polarToXY(fillEndDeg, RADIUS);
+  const ringColor = getRingColor(level, mode);
+  const segments = buildSegments(effectiveLevel);
 
-  // Tick marks
+  // Tip fade cap: last 5% of arc fades to transparent
+  const FADE_PCT = 5;
+  const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, effectiveLevel));
+  const fillEndDeg = START_DEG + ARC_DEG * (effectiveLevel / 100);
+  const fadeStartDeg = START_DEG + ARC_DEG * ((effectiveLevel - fadeSpanPct) / 100);
+  const gradTipStart = polarToXY(fadeStartDeg, RADIUS);
+  const gradTipEnd = polarToXY(fillEndDeg, RADIUS);
+
   const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 90, 100];
   const TICK_LENGTH = 6;
 
   return (
     <View style={styles.container}>
-      <AnimatedSvgWrapper
-        style={[styles.svgWrapper, { transform: [{ scale: pulseAnim }] }]}
-      >
+      <AnimatedSvgWrapper style={[styles.svgWrapper, { transform: [{ scale: pulseAnim }] }]}>
         <Animated.View style={[styles.svgWrapper, { opacity: criticalOpacity }]}>
           <Svg width={SIZE} height={SIZE}>
             <Defs>
-              {/* Tip fade: full colour → transparent over last 5% */}
               <LinearGradient
                 id="tipFade"
                 x1={gradTipStart.x}
@@ -208,7 +194,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               transform={`rotate(${START_DEG} ${CX} ${CY})`}
             />
 
-            {/* Colored segments — each 1° wide, stroked (not filled) to avoid seam artifacts */}
+            {/* Gradient fill: 1° stroked segments, no fill-seam artifacts */}
             {segments.map((seg, i) => (
               <Path
                 key={i}
@@ -220,14 +206,11 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               />
             ))}
 
-            {/* Tip fade cap on top — stroked to match segment rendering */}
+            {/* Tip fade cap — filled wedge with gradient so it blends to transparent */}
             {effectiveLevel >= 2 && (
               <Path
-                d={arcStrokePath(fadeStartDeg, fillEndDeg, RADIUS)}
-                stroke="url(#tipFade)"
-                strokeWidth={STROKE}
-                strokeLinecap="butt"
-                fill="none"
+                d={arcFillPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE)}
+                fill="url(#tipFade)"
               />
             )}
 
@@ -248,6 +231,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               let lx = CX + labelR * Math.cos(tickRad);
               let ly = CY + labelR * Math.sin(tickRad);
 
+              // Nudge 75% label away from its tick
               if (pct === 75) {
                 const tangentRad = tickRad - Math.PI / 2;
                 lx += Math.cos(tangentRad) * 7;
@@ -289,6 +273,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
           style={styles.logo}
           resizeMode="contain"
         />
+        {/* Percentage text color matches the arc color at the current level */}
         <Text style={[styles.percentText, { color: ringColor }]}>
           {effectiveLevel}%
         </Text>

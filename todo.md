@@ -94,3 +94,4 @@
 - [x] Update yellow color to #FFE135 (brighter yellow)
 - [x] Charging milestone colors match arc gradient at each percentage level
 - [x] Eliminate hard color line at 50% on charging arc — must be fully smooth gradient
+- [x] Battery ring full rewrite: fix center % text color, remove 50% line, fix orange brightness inconsistency, tighten gradient overlaps to 10%
