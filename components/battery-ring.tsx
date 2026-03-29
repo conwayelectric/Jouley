@@ -312,29 +312,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             />
           ))}
 
-          {/* LAYER 5: Gray radial lines at each tick position, drawn on top of the color fill.
-              Each line spans the full stroke width (inner to outer edge) at the tick angle.
-              This makes the color boundary at each tick visually align with the tick mark angle.
-              Lines between the fill tip and 100% are invisible (hidden under the gray track). */}
-          {tickPercents.map((pct) => {
-            const tickDeg = START_DEG + ARC_DEG * (pct / 100);
-            const tickRad = (tickDeg * Math.PI) / 180;
-            const innerR = RADIUS - STROKE / 2;
-            const outerR = RADIUS + STROKE / 2;
-            const lx1 = CX + outerR * Math.cos(tickRad);
-            const ly1 = CY + outerR * Math.sin(tickRad);
-            const lx2 = CX + innerR * Math.cos(tickRad);
-            const ly2 = CY + innerR * Math.sin(tickRad);
-            return (
-              <Line
-                key={`radial-${pct}`}
-                x1={lx1} y1={ly1} x2={lx2} y2={ly2}
-                stroke={COLOR_TRACK}
-                strokeWidth={1.5}
-                strokeLinecap="butt"
-              />
-            );
-          })}
+          {/* Layer 5 (tip fade cap) removed — caused color bleed artifacts */}
         </Svg>
       </Animated.View>
 
