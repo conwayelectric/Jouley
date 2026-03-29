@@ -48,7 +48,7 @@ export function ThermalGauge({ value, zone, label }: ThermalGaugeProps) {
       <Text style={styles.headerLabel}>DEVICE TEMP</Text>
 
       {/* Row 2: Colored zone label + optional detail, centered, below title */}
-      <Text style={[styles.zoneLabel, { color: activeColor }]} numberOfLines={1}>
+      <Text style={[styles.zoneLabel, { color: activeColor }]}>
         {ZONE_LABELS[zone]}{label ? `  ·  ${label}` : ""}
       </Text>
 
@@ -147,6 +147,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 1.5,
     textAlign: "center",
+    flexWrap: "wrap",
+    flexShrink: 1,
   },
   gaugeWrapper: {
     height: 28,

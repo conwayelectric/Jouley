@@ -274,7 +274,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.row}
-            onPress={() => Linking.openURL("https://conwaygoods.com/privacy")}
+            onPress={() => Linking.openURL("https://conwaygoods.com/pages/power-monitor-privacy")}
             activeOpacity={0.7}
           >
             <View style={styles.rowText}>
