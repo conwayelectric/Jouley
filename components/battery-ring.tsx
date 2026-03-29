@@ -91,9 +91,7 @@ function arcFillPath(startDeg: number, endDeg: number, r: number, strokeW: numbe
   ].join(" ");
 }
 
-// Build 1° arc segments for a percentage range using gradient colors.
-// Returns filled wedge paths so segment ends are radial (matching tick mark angles)
-// rather than tangential (the default for stroked arcs).
+// Build 1° arc segments for a percentage range using gradient colors
 function buildArcSegments(
   startPct: number,
   endPct: number
@@ -106,8 +104,7 @@ function buildArcSegments(
   let deg = 0;
   while (deg < totalDeg) {
     const segEnd = Math.min(deg + 1, totalDeg);
-    // midPct: position within the full 0-100 range for color interpolation
-    const midPct = startPct + ((startDegAbs - START_DEG + deg + (segEnd - deg) / 2) / ARC_DEG) * 100;
+    const midPct = startPct + ((deg + segEnd) / 2 / ARC_DEG) * 100;
     segs.push({
       startDeg: startDegAbs + deg,
       endDeg: startDegAbs + segEnd,
@@ -217,8 +214,10 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   // Animated portion (charging only): from windowStart to sweepTip
   const animatedSegments = isCharging ? buildArcSegments(windowStart, sweepTip) : [];
 
-  // Tip position
+  // Tip position (used for future cap logic if needed)
   const tipPct = isCharging ? sweepTip : effectiveLevel;
+  const fillEndDeg = START_DEG + ARC_DEG * (tipPct / 100);
+  const tipColor = colorToString(interpolateColor(Math.max(0, tipPct)));
 
   // Tick marks — 80 included, drawn in Layer 1 (behind arc)
   const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 90, 100];
@@ -230,6 +229,20 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
     <View style={styles.container}>
       <Animated.View style={[styles.svgWrapper, { opacity: mode === "full" ? fullPulse : criticalOpacity }]}>
         <Svg width={SIZE} height={SIZE}>
+          <Defs>
+            <LinearGradient
+              id="tipFade"
+              x1={gradTipStart.x}
+              y1={gradTipStart.y}
+              x2={gradTipEnd.x}
+              y2={gradTipEnd.y}
+              gradientUnits="userSpaceOnUse"
+            >
+              <Stop offset="0" stopColor={tipColor} stopOpacity="1" />
+              <Stop offset="1" stopColor={tipColor} stopOpacity="0" />
+            </LinearGradient>
+          </Defs>
+
           {/* LAYER 1: Tick marks — drawn first, behind the arc ring */}
           {tickPercents.map((pct) => {
             const tickDeg = START_DEG + ARC_DEG * (pct / 100);
@@ -290,14 +303,15 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
 
           {/* LAYER 3: Solid gradient arc from 0 to solidEndPct
               - When charging: covers 0 to windowStart (the "already charged" portion)
-              - When not charging: covers 0 to effectiveLevel (the full fill)
-              Uses filled wedge paths so segment ends are radial (matching tick mark angles) */}
+              - When not charging: covers 0 to effectiveLevel (the full fill) */}
           {solidSegments.map((seg, i) => (
             <Path
               key={`s${i}`}
-              d={arcFillPath(seg.startDeg, seg.endDeg, RADIUS, STROKE)}
-              fill={seg.color}
-              stroke="none"
+              d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
+              stroke={seg.color}
+              strokeWidth={STROKE}
+              strokeLinecap="butt"
+              fill="none"
             />
           ))}
 
@@ -306,9 +320,11 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
           {isCharging && animatedSegments.map((seg, i) => (
             <Path
               key={`a${i}`}
-              d={arcFillPath(seg.startDeg, seg.endDeg, RADIUS, STROKE)}
-              fill={seg.color}
-              stroke="none"
+              d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
+              stroke={seg.color}
+              strokeWidth={STROKE}
+              strokeLinecap="butt"
+              fill="none"
             />
           ))}
 
