@@ -116,3 +116,4 @@
 - [x] Device temp block: add centered DEVICE TEMP label at top, move zone labels below it and above bar
 - [x] Add Privacy Policy link row to Settings screen
 - [x] Add unlabeled tick marks at 15% and 25% on the battery ring arc
+- [x] Fix 5% label spacing on battery ring — add space between "5" and "%"

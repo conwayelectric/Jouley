@@ -299,7 +299,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
                     fill={isActive ? "#555555" : "#AAAAAA"}
                     letterSpacing={0.5}
                   >
-                    {pct}%
+                    {pct} %
                   </SvgText>
                 )}
               </React.Fragment>
