@@ -115,25 +115,6 @@ function buildArcSegments(
   return segs;
 }
 
-// Build a gray track arc segment for a percentage range (used to cover unrevealed color)
-function buildGraySegments(
-  startPct: number,
-  endPct: number
-): Array<{ startDeg: number; endDeg: number }> {
-  if (endPct <= startPct) return [];
-  const startDegAbs = START_DEG + ARC_DEG * (startPct / 100);
-  const endDegAbs = START_DEG + ARC_DEG * (endPct / 100);
-  const totalDeg = endDegAbs - startDegAbs;
-  const segs: Array<{ startDeg: number; endDeg: number }> = [];
-  let deg = 0;
-  while (deg < totalDeg) {
-    const segEnd = Math.min(deg + 1, totalDeg);
-    segs.push({ startDeg: startDegAbs + deg, endDeg: startDegAbs + segEnd });
-    deg = segEnd;
-  }
-  return segs;
-}
-
 interface BatteryRingProps {
   level: number;
   mode: BatteryMode;
@@ -191,30 +172,32 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const isCharging = mode === "charging";
   const ringColor = getRingColorString(level, mode);
 
-  // Sweep window
+  // Sweep window: the 20-point range below current level that animates during charging
   const SWEEP_WINDOW = 20;
   const windowStart = Math.max(0, effectiveLevel - SWEEP_WINDOW);
   const windowEnd = effectiveLevel;
-  // Current reveal tip: moves from windowStart to windowEnd as sweepProgress goes 0→1
+
+  // sweepTip moves from windowStart → windowEnd as sweepProgress goes 0 → 1
   const sweepTip = windowStart + sweepProgress * (windowEnd - windowStart);
 
   // --- Rendering layers (painted in order, later = on top) ---
   //
   // Layer 1: TICKS (drawn first, behind everything)
-  // Layer 2: Full gradient arc from 0 to effectiveLevel (always present)
-  // Layer 3: Gray track from effectiveLevel to 100% (unlit portion)
-  // Layer 4: During charging only — gray cover from sweepTip to windowEnd
-  //          (covers the unrevealed part of the window; as sweepTip advances, gray shrinks)
+  // Layer 2: Full gray track (entire 270° arc)
+  // Layer 3: Solid gradient arc from 0 to windowStart (the "already charged" portion — never animated)
+  // Layer 4 (charging only): Animated gradient arc from windowStart to sweepTip (grows each cycle)
+  //          When not charging: solid gradient arc from 0 to effectiveLevel (no animation)
   // Layer 5: Tip fade cap at the current visible tip
 
-  // Full gradient segments (0 to effectiveLevel)
-  const gradientSegments = buildArcSegments(0, effectiveLevel);
+  // Solid portion: from 0 to windowStart (always fully lit, never animated)
+  // When not charging, this covers 0 to effectiveLevel (the full fill)
+  const solidEndPct = isCharging ? windowStart : effectiveLevel;
+  const solidSegments = buildArcSegments(0, solidEndPct);
 
-  // Gray cover for unrevealed window portion (only during charging)
-  // Covers from sweepTip to windowEnd — shrinks as sweepTip advances
-  const grayWindowSegments = isCharging ? buildGraySegments(sweepTip, windowEnd) : [];
+  // Animated portion (charging only): from windowStart to sweepTip
+  const animatedSegments = isCharging ? buildArcSegments(windowStart, sweepTip) : [];
 
-  // Tip fade cap — at sweepTip when charging, at effectiveLevel when not
+  // Tip position for the fade cap
   const tipPct = isCharging ? sweepTip : effectiveLevel;
   const FADE_PCT = 5;
   const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, tipPct));
@@ -224,7 +207,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const gradTipEnd = polarToXY(fillEndDeg, RADIUS);
   const tipColor = colorToString(interpolateColor(Math.max(0, tipPct)));
 
-  // Tick marks — 80 added back, drawn in Layer 1 (behind arc)
+  // Tick marks — 80 included, drawn in Layer 1 (behind arc)
   const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 90, 100];
   const TICK_LENGTH = 6;
   // Ticks drawn inward from inner edge of arc stroke
@@ -310,10 +293,12 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             transform={`rotate(${START_DEG} ${CX} ${CY})`}
           />
 
-          {/* LAYER 3: Full gradient arc from 0 to effectiveLevel (painted over gray) */}
-          {gradientSegments.map((seg, i) => (
+          {/* LAYER 3: Solid gradient arc from 0 to solidEndPct
+              - When charging: covers 0 to windowStart (the "already charged" portion)
+              - When not charging: covers 0 to effectiveLevel (the full fill) */}
+          {solidSegments.map((seg, i) => (
             <Path
-              key={`g${i}`}
+              key={`s${i}`}
               d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
               stroke={seg.color}
               strokeWidth={STROKE}
@@ -322,13 +307,13 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             />
           ))}
 
-          {/* LAYER 4 (charging only): Gray cover over unrevealed window portion (sweepTip→windowEnd)
-              As sweepTip advances toward windowEnd, this gray shrinks — revealing color underneath */}
-          {isCharging && grayWindowSegments.map((seg, i) => (
+          {/* LAYER 4 (charging only): Animated gradient arc from windowStart to sweepTip
+              Grows from windowStart toward windowEnd each cycle — no color beyond sweepTip */}
+          {isCharging && animatedSegments.map((seg, i) => (
             <Path
-              key={`gc${i}`}
+              key={`a${i}`}
               d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
-              stroke={COLOR_TRACK}
+              stroke={seg.color}
               strokeWidth={STROKE}
               strokeLinecap="butt"
               fill="none"
