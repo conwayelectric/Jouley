@@ -85,10 +85,10 @@ function arcPath(startDeg: number, endDeg: number, r: number, strokeW: number): 
   ].join(" ");
 }
 
-// Build the list of colored arc segments for the filled portion.
-// Each segment is 2° wide (135 segments total for full arc).
-// Color is interpolated at the midpoint of each segment.
-const SEGMENT_DEG = 2; // degrees per segment
+// Build stroked arc segments for the filled portion.
+// Using stroke (not fill) eliminates the seam artifact between adjacent filled paths.
+// Each segment is 1° wide for smooth color transitions.
+const SEGMENT_DEG = 1; // degrees per segment
 function buildSegments(level: number): Array<{ startDeg: number; endDeg: number; color: string }> {
   if (level <= 0) return [];
   const fillDeg = ARC_DEG * (level / 100);
@@ -105,6 +105,14 @@ function buildSegments(level: number): Array<{ startDeg: number; endDeg: number;
     deg = segEnd;
   }
   return segs;
+}
+
+// Build a simple arc path (center-line only) for stroked rendering
+function arcStrokePath(startDeg: number, endDeg: number, r: number): string {
+  const s = polarToXY(startDeg, r);
+  const e = polarToXY(endDeg, r);
+  const largeArc = endDeg - startDeg > 180 ? 1 : 0;
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 1 ${e.x} ${e.y}`;
 }
 
 interface BatteryRingProps {
@@ -200,18 +208,27 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               transform={`rotate(${START_DEG} ${CX} ${CY})`}
             />
 
-            {/* Colored segments — each 2° wide, color interpolated from gradient stops */}
+            {/* Colored segments — each 1° wide, stroked (not filled) to avoid seam artifacts */}
             {segments.map((seg, i) => (
               <Path
                 key={i}
-                d={arcPath(seg.startDeg, seg.endDeg, RADIUS, STROKE)}
-                fill={seg.color}
+                d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
+                stroke={seg.color}
+                strokeWidth={STROKE}
+                strokeLinecap="butt"
+                fill="none"
               />
             ))}
 
-            {/* Tip fade cap on top */}
-            {fadePath && (
-              <Path d={fadePath} fill="url(#tipFade)" />
+            {/* Tip fade cap on top — stroked to match segment rendering */}
+            {effectiveLevel >= 2 && (
+              <Path
+                d={arcStrokePath(fadeStartDeg, fillEndDeg, RADIUS)}
+                stroke="url(#tipFade)"
+                strokeWidth={STROKE}
+                strokeLinecap="butt"
+                fill="none"
+              />
             )}
 
             {/* Tick marks + labels */}

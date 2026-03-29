@@ -93,3 +93,4 @@
 - [x] Fix hard edge at 50%: smooth orange-to-yellow gradient blend centered on 50%
 - [x] Update yellow color to #FFE135 (brighter yellow)
 - [x] Charging milestone colors match arc gradient at each percentage level
+- [x] Eliminate hard color line at 50% on charging arc — must be fully smooth gradient
