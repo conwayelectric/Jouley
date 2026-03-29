@@ -95,3 +95,6 @@
 - [x] Charging milestone colors match arc gradient at each percentage level
 - [x] Eliminate hard color line at 50% on charging arc — must be fully smooth gradient
 - [x] Battery ring full rewrite: fix center % text color, remove 50% line, fix orange brightness inconsistency, tighten gradient overlaps to 10%
+- [x] Replace scale pulse with color-stream animation: while charging, a brightness wave flows from (level-20%) to level% on the arc, repeating continuously
+- [x] Fix hard color lines at all zone transitions (20%, 50%, 75%) — all must be smooth gradients
+- [x] Remove "NOW" from Shop Now button text (change to "SHOP CONWAYGOODS.COM")
