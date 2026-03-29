@@ -214,10 +214,8 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   // Animated portion (charging only): from windowStart to sweepTip
   const animatedSegments = isCharging ? buildArcSegments(windowStart, sweepTip) : [];
 
-  // Tip position (used for future cap logic if needed)
+  // Tip position
   const tipPct = isCharging ? sweepTip : effectiveLevel;
-  const fillEndDeg = START_DEG + ARC_DEG * (tipPct / 100);
-  const tipColor = colorToString(interpolateColor(Math.max(0, tipPct)));
 
   // Tick marks — 80 included, drawn in Layer 1 (behind arc)
   const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 90, 100];
@@ -229,20 +227,6 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
     <View style={styles.container}>
       <Animated.View style={[styles.svgWrapper, { opacity: mode === "full" ? fullPulse : criticalOpacity }]}>
         <Svg width={SIZE} height={SIZE}>
-          <Defs>
-            <LinearGradient
-              id="tipFade"
-              x1={gradTipStart.x}
-              y1={gradTipStart.y}
-              x2={gradTipEnd.x}
-              y2={gradTipEnd.y}
-              gradientUnits="userSpaceOnUse"
-            >
-              <Stop offset="0" stopColor={tipColor} stopOpacity="1" />
-              <Stop offset="1" stopColor={tipColor} stopOpacity="0" />
-            </LinearGradient>
-          </Defs>
-
           {/* LAYER 1: Tick marks — drawn first, behind the arc ring */}
           {tickPercents.map((pct) => {
             const tickDeg = START_DEG + ARC_DEG * (pct / 100);
