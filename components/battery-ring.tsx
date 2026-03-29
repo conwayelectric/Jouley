@@ -246,15 +246,11 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             let lx = CX + labelR * Math.cos(tickRad);
             let ly = CY + labelR * Math.sin(tickRad);
 
-            // Nudge 75% label further counter-clockwise to clear the tick
+            // Push 75% label further inward (radially away from arc) to clear the tick
             if (pct === 75) {
-              const tangentRad = tickRad - Math.PI / 2;
-              lx += Math.cos(tangentRad) * 14;
-              ly += Math.sin(tangentRad) * 14;
-              // Also push slightly inward
               const inwardRad = tickRad + Math.PI;
-              lx += Math.cos(inwardRad) * 4;
-              ly += Math.sin(inwardRad) * 4;
+              lx += Math.cos(inwardRad) * 8;
+              ly += Math.sin(inwardRad) * 8;
             }
 
             return (
@@ -320,8 +316,8 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             />
           ))}
 
-          {/* LAYER 5: Tip fade cap at the current visible tip */}
-          {tipPct >= 2 && (
+          {/* LAYER 5: Tip fade cap — only when NOT charging (avoids color bleed into gray zone) */}
+          {!isCharging && tipPct >= 2 && (
             <Path
               d={arcFillPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE)}
               fill="url(#tipFade)"
