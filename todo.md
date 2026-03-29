@@ -101,3 +101,7 @@
 - [x] Fix tick marks: gray color, no 80% tick, drawn on inner edge, 75% label not overlapping tick
 - [x] Remove hard line at 75%: tick must not cross the colored fill
 - [x] Charging animation: continuous fill grows from (level-20%) to level% with no gap on reset
+- [x] Fix 75% label: move further from tick so no overlap
+- [x] Add 80% tick mark back
+- [x] Draw ticks behind arc ring (z-order: ticks first, then arc)
+- [x] Charging animation: render full gradient arc always, gray track reveals color by being removed in sweep window

@@ -14,7 +14,7 @@ const CX = SIZE / 2;
 const CY = SIZE / 2;
 const COLOR_TRACK = "#E5E7EB";
 
-// Gradient color zones — 15-point wide blends (7.5 each side of boundary)
+// Gradient color zones — 15-point wide blends centered on each boundary:
 //  red    (#DC2626): 0–12.5% solid
 //  blend  12.5–27.5%: red → orange  (centered on 20%)
 //  orange (#EA580C): 27.5–42.5% solid
@@ -91,8 +91,7 @@ function arcFillPath(startDeg: number, endDeg: number, r: number, strokeW: numbe
   ].join(" ");
 }
 
-// Build 1° arc segments for a given percentage range.
-// Returns segments from startPct to endPct using gradient colors.
+// Build 1° arc segments for a percentage range using gradient colors
 function buildArcSegments(
   startPct: number,
   endPct: number
@@ -105,13 +104,31 @@ function buildArcSegments(
   let deg = 0;
   while (deg < totalDeg) {
     const segEnd = Math.min(deg + 1, totalDeg);
-    // midpoint percentage within the full arc
     const midPct = startPct + ((deg + segEnd) / 2 / ARC_DEG) * 100;
     segs.push({
       startDeg: startDegAbs + deg,
       endDeg: startDegAbs + segEnd,
       color: colorToString(interpolateColor(midPct)),
     });
+    deg = segEnd;
+  }
+  return segs;
+}
+
+// Build a gray track arc segment for a percentage range (used to cover unrevealed color)
+function buildGraySegments(
+  startPct: number,
+  endPct: number
+): Array<{ startDeg: number; endDeg: number }> {
+  if (endPct <= startPct) return [];
+  const startDegAbs = START_DEG + ARC_DEG * (startPct / 100);
+  const endDegAbs = START_DEG + ARC_DEG * (endPct / 100);
+  const totalDeg = endDegAbs - startDegAbs;
+  const segs: Array<{ startDeg: number; endDeg: number }> = [];
+  let deg = 0;
+  while (deg < totalDeg) {
+    const segEnd = Math.min(deg + 1, totalDeg);
+    segs.push({ startDeg: startDegAbs + deg, endDeg: startDegAbs + segEnd });
     deg = segEnd;
   }
   return segs;
@@ -127,10 +144,9 @@ interface BatteryRingProps {
 export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: BatteryRingProps) {
   const sweepAnim = useRef(new Animated.Value(0)).current;
   const criticalOpacity = useRef(new Animated.Value(1)).current;
-  // sweepProgress 0→1: how much of the 20-point window is filled
   const [sweepProgress, setSweepProgress] = useState(0);
 
-  // Charging sweep: fill grows from (level-20%) to level%, resets instantly, repeats
+  // Charging sweep: sweepProgress 0→1 controls how much of the 20-point window is revealed
   useEffect(() => {
     if (mode === "charging") {
       const listener = sweepAnim.addListener(({ value }) => setSweepProgress(value));
@@ -175,35 +191,43 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const isCharging = mode === "charging";
   const ringColor = getRingColorString(level, mode);
 
-  // Sweep window boundaries
+  // Sweep window
   const SWEEP_WINDOW = 20;
   const windowStart = Math.max(0, effectiveLevel - SWEEP_WINDOW);
   const windowEnd = effectiveLevel;
-  // Current tip of the growing fill within the window
+  // Current reveal tip: moves from windowStart to windowEnd as sweepProgress goes 0→1
   const sweepTip = windowStart + sweepProgress * (windowEnd - windowStart);
 
-  // Static fill: 0% to windowStart (when charging) or 0% to effectiveLevel (when not)
-  const staticEnd = isCharging ? windowStart : effectiveLevel;
-  const staticSegments = buildArcSegments(0, staticEnd);
+  // --- Rendering layers (painted in order, later = on top) ---
+  //
+  // Layer 1: TICKS (drawn first, behind everything)
+  // Layer 2: Full gradient arc from 0 to effectiveLevel (always present)
+  // Layer 3: Gray track from effectiveLevel to 100% (unlit portion)
+  // Layer 4: During charging only — gray cover from sweepTip to windowEnd
+  //          (covers the unrevealed part of the window; as sweepTip advances, gray shrinks)
+  // Layer 5: Tip fade cap at the current visible tip
 
-  // Animated fill: windowStart to sweepTip (grows each frame while charging)
-  const sweepSegments = isCharging ? buildArcSegments(windowStart, sweepTip) : [];
+  // Full gradient segments (0 to effectiveLevel)
+  const gradientSegments = buildArcSegments(0, effectiveLevel);
 
-  // Tip fade cap: last 5% of the visible fill tip fades to transparent
-  const FADE_PCT = 5;
+  // Gray cover for unrevealed window portion (only during charging)
+  // Covers from sweepTip to windowEnd — shrinks as sweepTip advances
+  const grayWindowSegments = isCharging ? buildGraySegments(sweepTip, windowEnd) : [];
+
+  // Tip fade cap — at sweepTip when charging, at effectiveLevel when not
   const tipPct = isCharging ? sweepTip : effectiveLevel;
+  const FADE_PCT = 5;
   const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, tipPct));
   const fillEndDeg = START_DEG + ARC_DEG * (tipPct / 100);
   const fadeStartDeg = START_DEG + ARC_DEG * ((tipPct - fadeSpanPct) / 100);
   const gradTipStart = polarToXY(fadeStartDeg, RADIUS);
   const gradTipEnd = polarToXY(fillEndDeg, RADIUS);
-  const tipColor = colorToString(interpolateColor(tipPct));
+  const tipColor = colorToString(interpolateColor(Math.max(0, tipPct)));
 
-  // Tick marks: drawn inward from the inner edge of the arc so they never touch the fill
-  // tickPercents: 80 removed, 75 kept with label
-  const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 75, 90, 100];
+  // Tick marks — 80 added back, drawn in Layer 1 (behind arc)
+  const tickPercents = [5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 90, 100];
   const TICK_LENGTH = 6;
-  // Inner edge of arc stroke
+  // Ticks drawn inward from inner edge of arc stroke
   const INNER_EDGE = RADIUS - STROKE / 2 - 1;
 
   return (
@@ -224,54 +248,10 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             </LinearGradient>
           </Defs>
 
-          {/* Track arc */}
-          <Circle
-            cx={CX} cy={CY} r={RADIUS}
-            stroke={COLOR_TRACK}
-            strokeWidth={STROKE}
-            fill="none"
-            strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
-            strokeLinecap="butt"
-            transform={`rotate(${START_DEG} ${CX} ${CY})`}
-          />
-
-          {/* Static fill (below sweep window) */}
-          {staticSegments.map((seg, i) => (
-            <Path
-              key={`s${i}`}
-              d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
-              stroke={seg.color}
-              strokeWidth={STROKE}
-              strokeLinecap="butt"
-              fill="none"
-            />
-          ))}
-
-          {/* Animated sweep fill (grows from windowStart to sweepTip while charging) */}
-          {sweepSegments.map((seg, i) => (
-            <Path
-              key={`w${i}`}
-              d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
-              stroke={seg.color}
-              strokeWidth={STROKE}
-              strokeLinecap="butt"
-              fill="none"
-            />
-          ))}
-
-          {/* Tip fade cap */}
-          {tipPct >= 2 && (
-            <Path
-              d={arcFillPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE)}
-              fill="url(#tipFade)"
-            />
-          )}
-
-          {/* Tick marks — drawn inward from inner edge, never touching the arc fill */}
+          {/* LAYER 1: Tick marks — drawn first, behind the arc ring */}
           {tickPercents.map((pct) => {
             const tickDeg = START_DEG + ARC_DEG * (pct / 100);
             const tickRad = (tickDeg * Math.PI) / 180;
-            // Start at inner edge, extend inward (toward center)
             const x1 = CX + INNER_EDGE * Math.cos(tickRad);
             const y1 = CY + INNER_EDGE * Math.sin(tickRad);
             const x2 = CX + (INNER_EDGE - TICK_LENGTH) * Math.cos(tickRad);
@@ -279,16 +259,19 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             const isActive = pct <= effectiveLevel;
             const showLabel = pct === 5 || pct === 10 || pct === 20 || pct === 50 || pct === 75 || pct === 100;
 
-            // Labels sit further inward from the tick
             const labelR = INNER_EDGE - TICK_LENGTH - 10;
             let lx = CX + labelR * Math.cos(tickRad);
             let ly = CY + labelR * Math.sin(tickRad);
 
-            // Nudge 75% label counter-clockwise so it doesn't overlap the tick line
+            // Nudge 75% label further counter-clockwise to clear the tick
             if (pct === 75) {
               const tangentRad = tickRad - Math.PI / 2;
-              lx += Math.cos(tangentRad) * 7;
-              ly += Math.sin(tangentRad) * 7;
+              lx += Math.cos(tangentRad) * 14;
+              ly += Math.sin(tangentRad) * 14;
+              // Also push slightly inward
+              const inwardRad = tickRad + Math.PI;
+              lx += Math.cos(inwardRad) * 4;
+              ly += Math.sin(inwardRad) * 4;
             }
 
             return (
@@ -315,6 +298,50 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               </React.Fragment>
             );
           })}
+
+          {/* LAYER 2: Full gray track (entire 270° arc) */}
+          <Circle
+            cx={CX} cy={CY} r={RADIUS}
+            stroke={COLOR_TRACK}
+            strokeWidth={STROKE}
+            fill="none"
+            strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
+            strokeLinecap="butt"
+            transform={`rotate(${START_DEG} ${CX} ${CY})`}
+          />
+
+          {/* LAYER 3: Full gradient arc from 0 to effectiveLevel (painted over gray) */}
+          {gradientSegments.map((seg, i) => (
+            <Path
+              key={`g${i}`}
+              d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
+              stroke={seg.color}
+              strokeWidth={STROKE}
+              strokeLinecap="butt"
+              fill="none"
+            />
+          ))}
+
+          {/* LAYER 4 (charging only): Gray cover over unrevealed window portion (sweepTip→windowEnd)
+              As sweepTip advances toward windowEnd, this gray shrinks — revealing color underneath */}
+          {isCharging && grayWindowSegments.map((seg, i) => (
+            <Path
+              key={`gc${i}`}
+              d={arcStrokePath(seg.startDeg, seg.endDeg, RADIUS)}
+              stroke={COLOR_TRACK}
+              strokeWidth={STROKE}
+              strokeLinecap="butt"
+              fill="none"
+            />
+          ))}
+
+          {/* LAYER 5: Tip fade cap at the current visible tip */}
+          {tipPct >= 2 && (
+            <Path
+              d={arcFillPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE)}
+              fill="url(#tipFade)"
+            />
+          )}
         </Svg>
       </Animated.View>
 
