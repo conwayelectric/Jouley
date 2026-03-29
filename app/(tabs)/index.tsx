@@ -379,7 +379,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.discountBody}>
-              15% off your next Conway Electric purchase. Single-use code — valid for 30 days.
+              Conway Electric offers premium smart charging power cords and advanced lighting. Save 15% off your next Conway Electric purchase with this discount code. Single-use code — valid for 30 days.
             </Text>
             <TouchableOpacity
               style={styles.shopNowBtn}

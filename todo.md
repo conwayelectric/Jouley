@@ -109,3 +109,5 @@
 - [x] Add fully-charged green pulse animation when mode === "full"
 - [x] Add Jacob's ladder sound (first 1 second) when battery reaches 100%
 - [x] Add sound on/off toggle in Settings screen
+- [x] Replace completion sound with Uppbeat bubble pop & ding
+- [x] Update discount card description text with Conway Electric brand context
