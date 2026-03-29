@@ -98,7 +98,7 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -150,7 +150,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: "#FFFFFF",
   },
 
   // Header
@@ -166,21 +166,21 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "900",
-    color: "#FFFFFF",
+      color: "#111827",
     letterSpacing: 2,
     textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     letterSpacing: 1.5,
     marginTop: 2,
     textAlign: "center",
   },
   dividerLine: {
     height: 1,
-    backgroundColor: "#2E2E2E",
+    backgroundColor: "#E5E7EB",
   },
 
   // List
@@ -197,16 +197,16 @@ const styles = StyleSheet.create({
   listHeaderText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     letterSpacing: 1,
   },
   clearBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#2A1A1A",
+    backgroundColor: "#FEF2F2",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#5A2020",
+    borderColor: "#FECACA",
   },
   clearBtnText: {
     fontSize: 12,
@@ -216,10 +216,10 @@ const styles = StyleSheet.create({
 
   // Session card
   card: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#F9FAFB",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#2E2E2E",
+    borderColor: "#E5E7EB",
     marginBottom: 12,
     overflow: "hidden",
   },
@@ -230,16 +230,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#2E2E2E",
+    borderBottomColor: "#E5E7EB",
   },
   cardDate: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#111827",
   },
   cardTime: {
     fontSize: 12,
-    color: "#6B6B6B",
+    color: "#6B7280",
     fontWeight: "500",
   },
   statsGrid: {
@@ -253,18 +253,18 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    backgroundColor: "#2E2E2E",
+    backgroundColor: "#E5E7EB",
     marginVertical: 4,
   },
   statValue: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#111827",
   },
   statLabel: {
     fontSize: 9,
     fontWeight: "800",
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     letterSpacing: 1.5,
   },
   cardFooter: {
@@ -273,12 +273,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "#2E2E2E",
+    borderTopColor: "#E5E7EB",
     gap: 8,
   },
   footerItem: {
     fontSize: 12,
-    color: "#9A9A9A",
+    color: "#6B7280",
     fontWeight: "500",
   },
 
@@ -296,12 +296,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#111827",
     letterSpacing: 0.5,
   },
   emptyText: {
     fontSize: 14,
-    color: "#6B6B6B",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 22,
   },

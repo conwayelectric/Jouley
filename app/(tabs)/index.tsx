@@ -126,7 +126,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -384,11 +384,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: "#FFFFFF",
   },
   scroll: {
     flex: 1,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: "#FFFFFF",
   },
   scrollContent: {
     paddingBottom: 40,
@@ -407,21 +407,21 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: "#111827",
     letterSpacing: 2,
     textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     letterSpacing: 1.5,
     marginTop: 2,
     textAlign: "center",
   },
   dividerLine: {
     height: 1,
-    backgroundColor: "#2E2E2E",
+    backgroundColor: "#E5E7EB",
     marginHorizontal: 0,
   },
 
@@ -442,13 +442,13 @@ const styles = StyleSheet.create({
   timeValue: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#111827",
     textAlign: "center",
     letterSpacing: -0.5,
   },
   timeSubtext: {
     fontSize: 13,
-    color: "#9A9A9A",
+    color: "#6B7280",
     textAlign: "center",
     fontWeight: "500",
   },
@@ -457,28 +457,28 @@ const styles = StyleSheet.create({
   infoCard: {
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#F9FAFB",
     borderRadius: 14,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#2E2E2E",
+    borderColor: "#E5E7EB",
     gap: 8,
   },
   infoCardTitle: {
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#9A9A9A",
+    color: "#9CA3AF",
   },
   infoCardText: {
     fontSize: 14,
-    color: "#FFFFFF",
+    color: "#111827",
     lineHeight: 22,
     fontWeight: "500",
   },
   infoCardNote: {
     fontSize: 12,
-    color: "#6B6B6B",
+    color: "#6B7280",
     lineHeight: 18,
   },
 
@@ -488,11 +488,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: "#0D2E1A",
+    backgroundColor: "#F0FDF4",
     borderRadius: 14,
     padding: 18,
     borderWidth: 1.5,
-    borderColor: "#22C55E",
+    borderColor: "#16A34A",
     gap: 14,
   },
   fullBannerIcon: {
@@ -502,12 +502,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#22C55E",
+    color: "#16A34A",
     marginBottom: 4,
   },
   fullBannerText: {
     fontSize: 14,
-    color: "#FFFFFF",
+    color: "#166534",
     fontWeight: "500",
   },
 
@@ -515,15 +515,15 @@ const styles = StyleSheet.create({
   unavailableCard: {
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#F9FAFB",
     borderRadius: 14,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#2E2E2E",
+    borderColor: "#E5E7EB",
   },
   unavailableText: {
     fontSize: 14,
-    color: "#9A9A9A",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 22,
   },
@@ -538,19 +538,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 2,
-    color: "#3E3E3E",
+    color: "#9CA3AF",
   },
 
   // Web fallback
   webFallback: {
     flex: 1,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
   },
   webText: {
-    color: "#9A9A9A",
+    color: "#6B7280",
     textAlign: "center",
     fontSize: 16,
     lineHeight: 24,
@@ -560,10 +560,10 @@ const styles = StyleSheet.create({
   deviceCard: {
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#F9FAFB",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#2E2E2E",
+    borderColor: "#E5E7EB",
     overflow: "hidden",
   },
   deviceRow: {
@@ -575,19 +575,19 @@ const styles = StyleSheet.create({
   },
   deviceDivider: {
     height: 1,
-    backgroundColor: "#2E2E2E",
+    backgroundColor: "#E5E7EB",
     marginHorizontal: 18,
   },
   deviceLabel: {
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B6B6B",
+    color: "#9CA3AF",
   },
   deviceValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: "#111827",
     textAlign: "right",
     flex: 1,
     marginLeft: 16,
@@ -597,10 +597,10 @@ const styles = StyleSheet.create({
   speedBadge: {
     marginHorizontal: 16,
     marginBottom: 8,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#EFF6FF",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#2E4A6E",
+    borderColor: "#BFDBFE",
     paddingVertical: 12,
     paddingHorizontal: 18,
     alignItems: "center",
@@ -609,13 +609,13 @@ const styles = StyleSheet.create({
   speedText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#5B8DB8",
+    color: "#1D4ED8",
     letterSpacing: 0.5,
   },
   speedSub: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#6B6B6B",
+    color: "#6B7280",
     letterSpacing: 1,
   },
 
@@ -623,10 +623,10 @@ const styles = StyleSheet.create({
   suggestionCard: {
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: "#1A1200",
+    backgroundColor: "#FFFBEB",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#EAB30844",
+    borderColor: "#FDE68A",
     flexDirection: "row",
     alignItems: "flex-start",
     paddingHorizontal: 18,
@@ -634,8 +634,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   suggestionCardBlue: {
-    backgroundColor: "#001A2A",
-    borderColor: "#3B82F644",
+    backgroundColor: "#EFF6FF",
+    borderColor: "#BFDBFE",
   },
   suggestionIcon: {
     fontSize: 22,
@@ -648,19 +648,19 @@ const styles = StyleSheet.create({
   suggestionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#EAB308",
+    color: "#92400E",
   },
   suggestionTitleBlue: {
-    color: "#60A5FA",
+    color: "#1D4ED8",
   },
   suggestionBody: {
     fontSize: 12,
-    color: "#A89040",
+    color: "#78350F",
     fontWeight: "500",
     lineHeight: 18,
   },
   suggestionBodyBlue: {
-    color: "#5B8DB8",
+    color: "#1E40AF",
   },
   suggestionDismiss: {
     paddingLeft: 4,
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
   },
   suggestionDismissText: {
     fontSize: 16,
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     fontWeight: "400",
     lineHeight: 20,
   },
@@ -678,10 +678,10 @@ const styles = StyleSheet.create({
   discountCard: {
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: "#0D1F0D",
+    backgroundColor: "#F0FDF4",
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: "#22C55E55",
+    borderColor: "#86EFAC",
     padding: 18,
     gap: 10,
   },
@@ -694,12 +694,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#22C55E",
+    color: "#16A34A",
   },
   discountExpiry: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#6B6B6B",
+    color: "#6B7280",
     letterSpacing: 0.5,
   },
   discountCodeRow: {
@@ -710,27 +710,27 @@ const styles = StyleSheet.create({
   discountCode: {
     fontSize: 22,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: "#166534",
     letterSpacing: 3,
     flex: 1,
   },
   discountCopyBtn: {
-    backgroundColor: "#22C55E22",
+    backgroundColor: "#DCFCE7",
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: "#22C55E55",
+    borderColor: "#86EFAC",
   },
   discountCopyText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#22C55E",
+    color: "#16A34A",
     letterSpacing: 0.5,
   },
   discountBody: {
     fontSize: 12,
-    color: "#5A8A5A",
+    color: "#166534",
     fontWeight: "500",
     lineHeight: 18,
   },
@@ -740,10 +740,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#111827",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#3A3A3A",
+    borderColor: "#374151",
     paddingVertical: 16,
     paddingHorizontal: 20,
     flexDirection: "row",

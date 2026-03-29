@@ -130,10 +130,10 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#F9FAFB",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#2E2E2E",
+    borderColor: "#E5E7EB",
     padding: 14,
     gap: 8,
   },
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   headerLabel: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     letterSpacing: 1.5,
   },
   zoneLabel: {
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#D1D5DB",
   },
   segment: {
     height: "100%",
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     top: 4,
     bottom: 4,
     right: 0,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: "#FFFFFF",
     opacity: 0.72,
     borderTopRightRadius: 3,
     borderBottomRightRadius: 3,
@@ -192,8 +192,8 @@ const styles = StyleSheet.create({
     marginLeft: -1.5,
     borderRadius: 2,
     borderWidth: 1,
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#FFFFFF",
+    backgroundColor: "#374151",
+    shadowColor: "#374151",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     width: 1,
     top: 0,
     bottom: 0,
-    backgroundColor: "#444",
+    backgroundColor: "#D1D5DB",
     marginLeft: -0.5,
   },
   tickLabelRow: {
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   tickLabel: {
     fontSize: 9,
     fontWeight: "700",
-    color: "#555",
+    color: "#6B7280",
     letterSpacing: 1,
     width: 16,
     textAlign: "center",

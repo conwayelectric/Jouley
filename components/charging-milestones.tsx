@@ -95,17 +95,17 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#F9FAFB",
     borderRadius: 14,
     padding: 20,
     borderWidth: 1,
-    borderColor: "#2E2E2E",
+    borderColor: "#E5E7EB",
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#9A9A9A",
+    color: "#9CA3AF",
     marginBottom: 16,
   },
   list: {
@@ -127,10 +127,10 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   connectorReached: {
-    backgroundColor: "#5B8DB8",
+    backgroundColor: "#1D4ED8",
   },
   connectorPending: {
-    backgroundColor: "#2E2E2E",
+    backgroundColor: "#E5E7EB",
   },
   dot: {
     width: 40,
@@ -141,17 +141,17 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   dotReached: {
-    backgroundColor: "#5B8DB8",
+    backgroundColor: "#1D4ED8",
   },
   dotNext: {
-    backgroundColor: "#E8450A",
+    backgroundColor: "#DC2626",
     borderWidth: 2,
-    borderColor: "#FF6B35",
+    borderColor: "#F87171",
   },
   dotPending: {
-    backgroundColor: "#2E2E2E",
+    backgroundColor: "#E5E7EB",
     borderWidth: 1,
-    borderColor: "#3E3E3E",
+    borderColor: "#D1D5DB",
   },
   checkmark: {
     color: "#FFFFFF",
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   dotPercent: {
-    color: "#9A9A9A",
+    color: "#6B7280",
     fontSize: 10,
     fontWeight: "700",
   },
@@ -174,17 +174,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   textReached: {
-    color: "#5B8DB8",
+    color: "#1D4ED8",
   },
   textNext: {
-    color: "#FFFFFF",
+    color: "#111827",
   },
   textPending: {
-    color: "#6B6B6B",
+    color: "#9CA3AF",
   },
   etaLabel: {
     fontSize: 14,
-    color: "#9A9A9A",
+    color: "#6B7280",
     fontWeight: "500",
   },
 });

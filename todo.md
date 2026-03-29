@@ -81,3 +81,6 @@
 - [x] Apply gradient along entire colored arc fill bar (not just fade cap)
 - [x] Offset 75% label left so it doesn't overlap the tick mark
 - [x] Fix arc gradient: solid fill bar + 5% fade-to-transparent cap at the leading tip only
+- [x] Light mode replica: white background theme with adapted colors
+- [x] Light mode replica: multi-color gradient arc (red→orange→yellow→green across full 270°)
+- [x] Light mode replica: audit all screens for white-background visibility

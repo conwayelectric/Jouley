@@ -24,9 +24,9 @@ function getWarningStyle(minutes: number) {
     };
   }
   return {
-    bg: "#1A1A1A",
+    bg: "#FFFBEB",
     border: "#F59E0B",
-    text: "#F59E0B",
+    text: "#92400E",
     icon: "⚠️",
   };
 }

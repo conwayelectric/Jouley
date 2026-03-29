@@ -117,9 +117,9 @@ export default function SettingsScreen() {
             <Switch
               value={alwaysOn}
               onValueChange={toggleAlwaysOn}
-              trackColor={{ false: "#3E3E3E", true: "#22C55E" }}
-              thumbColor={alwaysOn ? "#FFFFFF" : "#9A9A9A"}
-              ios_backgroundColor="#3E3E3E"
+              trackColor={{ false: "#D1D5DB", true: "#16A34A" }}
+              thumbColor={alwaysOn ? "#FFFFFF" : "#F9FAFB"}
+              ios_backgroundColor="#D1D5DB"
             />
           </View>
           {alwaysOn && (
@@ -250,11 +250,11 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#0D0D0D" },
-  scroll: { flex: 1, backgroundColor: "#0D0D0D" },
+  safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
+  scroll: { flex: 1, backgroundColor: "#FFFFFF" },
   scrollContent: { paddingBottom: 40 },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
-  loadingText: { color: "#9A9A9A", fontSize: 16 },
+  loadingText: { color: "#6B7280", fontSize: 16 },
 
   header: {
     paddingHorizontal: 20,
@@ -264,19 +264,19 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: "#111827",
     letterSpacing: 3,
   },
   headerSubtitle: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     letterSpacing: 1.5,
     marginTop: 4,
   },
   divider: {
     height: 1,
-    backgroundColor: "#2E2E2E",
+    backgroundColor: "#E5E7EB",
     marginBottom: 24,
   },
 
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     marginHorizontal: 20,
     marginBottom: 8,
     marginTop: 4,
@@ -293,10 +293,10 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginBottom: 20,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#F9FAFB",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#2E2E2E",
+    borderColor: "#E5E7EB",
     padding: 18,
     gap: 12,
   },
@@ -310,49 +310,49 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#111827",
     marginBottom: 4,
   },
   rowDesc: {
     fontSize: 13,
-    color: "#9A9A9A",
+    color: "#6B7280",
     lineHeight: 19,
   },
 
   infoBox: {
-    backgroundColor: "#0F2A1A",
+    backgroundColor: "#F0FDF4",
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#22C55E33",
+    borderColor: "#86EFAC",
   },
   infoText: {
     fontSize: 13,
-    color: "#22C55E",
+    color: "#16A34A",
     lineHeight: 19,
   },
   warningBox: {
-    backgroundColor: "#2A1A0F",
+    backgroundColor: "#FFF7ED",
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#F9731633",
+    borderColor: "#FDBA74",
   },
   warningText: {
     fontSize: 13,
-    color: "#F97316",
+    color: "#EA580C",
     lineHeight: 19,
   },
   tipBox: {
-    backgroundColor: "#1A1A2E",
+    backgroundColor: "#EFF6FF",
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#3B82F633",
+    borderColor: "#BFDBFE",
   },
   tipText: {
     fontSize: 13,
-    color: "#93C5FD",
+    color: "#1D4ED8",
     lineHeight: 19,
   },
 
@@ -363,12 +363,12 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginTop: 2,
   },
-  badgeGranted: { backgroundColor: "#22C55E22", borderWidth: 1, borderColor: "#22C55E" },
-  badgeDenied: { backgroundColor: "#EF444422", borderWidth: 1, borderColor: "#EF4444" },
-  badgeText: { fontSize: 12, fontWeight: "800", color: "#FFFFFF", letterSpacing: 1 },
+  badgeGranted: { backgroundColor: "#DCFCE7", borderWidth: 1, borderColor: "#16A34A" },
+  badgeDenied: { backgroundColor: "#FEE2E2", borderWidth: 1, borderColor: "#DC2626" },
+  badgeText: { fontSize: 12, fontWeight: "800", color: "#111827", letterSpacing: 1 },
 
   enableButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#111827",
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",
@@ -376,18 +376,18 @@ const styles = StyleSheet.create({
   enableButtonText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#0D0D0D",
+    color: "#FFFFFF",
     letterSpacing: 0.5,
   },
 
   infoCardText: {
     fontSize: 14,
-    color: "#9A9A9A",
+    color: "#6B7280",
     lineHeight: 20,
   },
   infoCardSubtext: {
     fontSize: 13,
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     lineHeight: 19,
     marginTop: 4,
   },
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   thresholdBadge: {
-    backgroundColor: "#2E2E2E",
+    backgroundColor: "#E5E7EB",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   thresholdText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#111827",
   },
 
   infoRow: {
@@ -416,17 +416,17 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#6B6B6B",
+    color: "#9CA3AF",
     letterSpacing: 1,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: "#111827",
   },
   infoDivider: {
     height: 1,
-    backgroundColor: "#2E2E2E",
+    backgroundColor: "#E5E7EB",
   },
 
   footer: {
@@ -438,6 +438,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 2,
-    color: "#3E3E3E",
+    color: "#9CA3AF",
   },
 });
