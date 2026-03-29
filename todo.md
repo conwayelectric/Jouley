@@ -84,3 +84,4 @@
 - [x] Light mode replica: white background theme with adapted colors
 - [x] Light mode replica: multi-color gradient arc (red→orange→yellow→green across full 270°)
 - [x] Light mode replica: audit all screens for white-background visibility
+- [x] Fix arc gradient: red 0–20%, smooth transitions between red/orange/yellow/green zones

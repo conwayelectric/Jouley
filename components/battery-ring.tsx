@@ -10,22 +10,54 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const ARC_RATIO = 0.75; // 270° arc
 const ARC_DEG = 270;
 const START_DEG = 135;
-
-// Light-mode ring colors
-const COLOR_GREEN  = "#16A34A"; // 76–100%
-const COLOR_YELLOW = "#CA8A04"; // 51–75%
-const COLOR_ORANGE = "#EA580C"; // 21–50%
-const COLOR_RED    = "#DC2626"; // 0–20%
-const COLOR_TRACK  = "#E5E7EB"; // light grey track
 const CX = SIZE / 2;
 const CY = SIZE / 2;
+const COLOR_TRACK = "#E5E7EB";
+
+// Zone colors — these are the exact colors at each boundary
+// 0%  → red
+// 20% → red (end of red zone)
+// 20% → orange (start of orange zone, blends from red)
+// 50% → orange (end of orange zone)
+// 50% → yellow (start of yellow zone, blends from orange)
+// 75% → yellow (end of yellow zone)
+// 75% → green (start of green zone, blends from yellow)
+// 100% → green
+
+// We interpolate between these colors per-segment so every transition is smooth.
+const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
+  { pct: 0,   r: 220, g: 38,  b: 38  }, // #DC2626 red
+  { pct: 20,  r: 220, g: 38,  b: 38  }, // #DC2626 red (hold)
+  { pct: 35,  r: 234, g: 88,  b: 12  }, // #EA580C orange (blend zone)
+  { pct: 50,  r: 234, g: 88,  b: 12  }, // #EA580C orange (hold)
+  { pct: 63,  r: 202, g: 138, b: 4   }, // #CA8A04 yellow (blend zone)
+  { pct: 75,  r: 202, g: 138, b: 4   }, // #CA8A04 yellow (hold)
+  { pct: 88,  r: 22,  g: 163, b: 74  }, // #16A34A green (blend zone)
+  { pct: 100, r: 22,  g: 163, b: 74  }, // #16A34A green (hold)
+];
+
+function interpolateColor(pct: number): string {
+  // Find surrounding stops
+  let lo = GRADIENT_STOPS[0];
+  let hi = GRADIENT_STOPS[GRADIENT_STOPS.length - 1];
+  for (let i = 0; i < GRADIENT_STOPS.length - 1; i++) {
+    if (pct >= GRADIENT_STOPS[i].pct && pct <= GRADIENT_STOPS[i + 1].pct) {
+      lo = GRADIENT_STOPS[i];
+      hi = GRADIENT_STOPS[i + 1];
+      break;
+    }
+  }
+  const span = hi.pct - lo.pct;
+  const t = span === 0 ? 0 : (pct - lo.pct) / span;
+  const r = Math.round(lo.r + t * (hi.r - lo.r));
+  const g = Math.round(lo.g + t * (hi.g - lo.g));
+  const b = Math.round(lo.b + t * (hi.b - lo.b));
+  return `rgb(${r},${g},${b})`;
+}
 
 function getRingColor(level: number, mode: BatteryMode): string {
-  if (mode === "full") return COLOR_GREEN;
-  if (level >= 76) return COLOR_GREEN;
-  if (level >= 51) return COLOR_YELLOW;
-  if (level >= 21) return COLOR_ORANGE;
-  return COLOR_RED;
+  if (mode === "full") return interpolateColor(100);
+  return interpolateColor(level);
 }
 
 function polarToXY(angleDeg: number, r: number): { x: number; y: number } {
@@ -48,6 +80,28 @@ function arcPath(startDeg: number, endDeg: number, r: number, strokeW: number): 
     `A ${inner} ${inner} 0 ${largeArc} 0 ${e2.x} ${e2.y}`,
     "Z",
   ].join(" ");
+}
+
+// Build the list of colored arc segments for the filled portion.
+// Each segment is 2° wide (135 segments total for full arc).
+// Color is interpolated at the midpoint of each segment.
+const SEGMENT_DEG = 2; // degrees per segment
+function buildSegments(level: number): Array<{ startDeg: number; endDeg: number; color: string }> {
+  if (level <= 0) return [];
+  const fillDeg = ARC_DEG * (level / 100);
+  const segs: Array<{ startDeg: number; endDeg: number; color: string }> = [];
+  let deg = 0;
+  while (deg < fillDeg) {
+    const segEnd = Math.min(deg + SEGMENT_DEG, fillDeg);
+    const midPct = ((deg + segEnd) / 2 / ARC_DEG) * 100;
+    segs.push({
+      startDeg: START_DEG + deg,
+      endDeg: START_DEG + segEnd,
+      color: interpolateColor(midPct),
+    });
+    deg = segEnd;
+  }
+  return segs;
 }
 
 interface BatteryRingProps {
@@ -94,32 +148,15 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   }, [mode, level <= 10]);
 
   const ringColor = getRingColor(level, mode);
-
-  // Arc geometry
-  const arcStartDeg = START_DEG;
-  const arcLength = CIRCUMFERENCE * ARC_RATIO;
-  const filledLength = arcLength * (level / 100);
-  const fillEndDeg = arcStartDeg + ARC_DEG * (level / 100);
-
-  // Full-arc multi-color gradient path (red→orange→yellow→green across 270°)
-  // The gradient runs from arc start → arc end using the full 270° span.
-  // We always render the full gradient path, then mask it with the solid fill arc
-  // by drawing the track on top of the unfilled portion — but since we need the
-  // gradient to show only up to the current level, we render it as a filled path
-  // that only covers the filled portion.
-  const fullArcPath = level > 0 ? arcPath(arcStartDeg, fillEndDeg, RADIUS, STROKE) : null;
-
-  // Gradient endpoints: start of arc → end of arc (full 270° span)
-  // This makes the gradient span the entire possible arc so colors are consistent
-  // regardless of current level.
-  const gradFullStart = polarToXY(arcStartDeg, RADIUS);
-  const gradFullEnd   = polarToXY(arcStartDeg + ARC_DEG, RADIUS);
+  const segments = buildSegments(mode === "full" ? 100 : level);
 
   // Tip fade cap: last 5% of the filled arc fades to transparent
+  const fillEndDeg = START_DEG + ARC_DEG * ((mode === "full" ? 100 : level) / 100);
   const FADE_PCT = 5;
-  const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, level));
-  const fadeStartDeg = arcStartDeg + ARC_DEG * ((level - fadeSpanPct) / 100);
-  const fadePath = level >= 2 ? arcPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE) : null;
+  const effectiveLevel = mode === "full" ? 100 : level;
+  const fadeSpanPct = Math.min(FADE_PCT, Math.max(0, effectiveLevel));
+  const fadeStartDeg = START_DEG + ARC_DEG * ((effectiveLevel - fadeSpanPct) / 100);
+  const fadePath = effectiveLevel >= 2 ? arcPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE) : null;
   const gradTipStart = polarToXY(fadeStartDeg, RADIUS);
   const gradTipEnd   = polarToXY(fillEndDeg, RADIUS);
 
@@ -135,30 +172,6 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
         <Animated.View style={[styles.svgWrapper, { opacity: criticalOpacity }]}>
           <Svg width={SIZE} height={SIZE}>
             <Defs>
-              {/*
-                Full-arc multi-color gradient: red (arc start/0%) →
-                orange (21%) → yellow (51%) → green (76%→100%).
-                Gradient spans the full 270° arc from start to end point.
-                gradientUnits="userSpaceOnUse" with raw pixel coords required.
-              */}
-              <LinearGradient
-                id="arcMultiColor"
-                x1={gradFullStart.x}
-                y1={gradFullStart.y}
-                x2={gradFullEnd.x}
-                y2={gradFullEnd.y}
-                gradientUnits="userSpaceOnUse"
-              >
-                <Stop offset="0"    stopColor={COLOR_RED}    stopOpacity="1" />
-                <Stop offset="0.20" stopColor={COLOR_RED}    stopOpacity="1" />
-                <Stop offset="0.21" stopColor={COLOR_ORANGE} stopOpacity="1" />
-                <Stop offset="0.50" stopColor={COLOR_ORANGE} stopOpacity="1" />
-                <Stop offset="0.51" stopColor={COLOR_YELLOW} stopOpacity="1" />
-                <Stop offset="0.75" stopColor={COLOR_YELLOW} stopOpacity="1" />
-                <Stop offset="0.76" stopColor={COLOR_GREEN}  stopOpacity="1" />
-                <Stop offset="1"    stopColor={COLOR_GREEN}  stopOpacity="1" />
-              </LinearGradient>
-
               {/* Tip fade: full colour → transparent over last 5% */}
               <LinearGradient
                 id="tipFade"
@@ -179,15 +192,19 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               stroke={COLOR_TRACK}
               strokeWidth={STROKE}
               fill="none"
-              strokeDasharray={`${arcLength} ${CIRCUMFERENCE}`}
+              strokeDasharray={`${CIRCUMFERENCE * ARC_RATIO} ${CIRCUMFERENCE}`}
               strokeLinecap="butt"
               transform={`rotate(${START_DEG} ${CX} ${CY})`}
             />
 
-            {/* Multi-color gradient fill arc */}
-            {fullArcPath && (
-              <Path d={fullArcPath} fill="url(#arcMultiColor)" />
-            )}
+            {/* Colored segments — each 2° wide, color interpolated from gradient stops */}
+            {segments.map((seg, i) => (
+              <Path
+                key={i}
+                d={arcPath(seg.startDeg, seg.endDeg, RADIUS, STROKE)}
+                fill={seg.color}
+              />
+            ))}
 
             {/* Tip fade cap on top */}
             {fadePath && (
@@ -196,7 +213,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
 
             {/* Tick marks + labels */}
             {tickPercents.map((pct) => {
-              const tickDeg = arcStartDeg + ARC_DEG * (pct / 100);
+              const tickDeg = START_DEG + ARC_DEG * (pct / 100);
               const tickRad = (tickDeg * Math.PI) / 180;
               const innerR = RADIUS - STROKE / 2 - 2;
               const outerR = innerR - TICK_LENGTH;
@@ -204,7 +221,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
               const y1 = CY + innerR * Math.sin(tickRad);
               const x2 = CX + outerR * Math.cos(tickRad);
               const y2 = CY + outerR * Math.sin(tickRad);
-              const isActive = pct <= level;
+              const isActive = pct <= effectiveLevel;
               const showLabel = pct === 5 || pct === 10 || pct === 20 || pct === 50 || pct === 75 || pct === 100;
 
               const labelR = innerR - TICK_LENGTH - 10;
@@ -253,7 +270,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
           resizeMode="contain"
         />
         <Text style={[styles.percentText, { color: ringColor }]}>
-          {level}%
+          {effectiveLevel}%
         </Text>
         <Text style={styles.modeLabel}>
           {mode === "charging"
