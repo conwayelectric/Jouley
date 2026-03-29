@@ -39,6 +39,7 @@ export const STORAGE_KEY_LAST_CHARGE_TIMESTAMP = "conway_last_charge_timestamp";
 export const STORAGE_KEY_LAST_CHARGE_RATE = "conway_last_charge_rate";
 export const STORAGE_KEY_FIRED_WARNINGS = "conway_fired_warnings"; // JSON array of fired thresholds
 export const STORAGE_KEY_FIRST_LAUNCH = "conway_first_launch_done";
+export const STORAGE_KEY_SOUND_ENABLED = "conway_sound_enabled"; // "true" | "false", default true
 export const STORAGE_KEY_LAST_BACKGROUND_CHECK = "conway_last_background_check";
 
 // Low battery threshold for background alert

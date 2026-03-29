@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAudioPlayer, setAudioModeAsync } from "expo-audio";
+import { STORAGE_KEY_SOUND_ENABLED } from "@/lib/background-battery-task";
 import {
   View,
   Text,
@@ -24,6 +26,8 @@ import { StatsRow } from "@/components/stats-row";
 import { ThermalGauge } from "@/components/thermal-gauge";
 import { useDiscountCode } from "@/hooks/use-discount-code";
 import * as Clipboard from "expo-clipboard";
+
+const fullyChargedSound = require("@/assets/sounds/fully-charged.mp3");
 
 // Notifications only appear as native pop-ups when the app is backgrounded or closed.
 // When the app is open, the dashboard shows live minutes remaining instead.
@@ -51,14 +55,40 @@ export default function HomeScreen() {
   const [isLowPowerMode, setIsLowPowerMode] = useState(false);
   const [lowPowerDismissed, setLowPowerDismissed] = useState(false);
   const [slowChargerDismissed, setSlowChargerDismissed] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const soundEnabledRef = useRef(true);
+  const soundPlayer = useAudioPlayer(fullyChargedSound);
+  const soundFiredRef = useRef(false); // prevent repeat within same full session
 
-  // Load persisted dismissals on mount
+  // Load persisted dismissals and sound preference on mount
   useEffect(() => {
-    AsyncStorage.multiGet(["dismiss_lowpower", "dismiss_slowcharger"]).then((pairs) => {
+    AsyncStorage.multiGet(["dismiss_lowpower", "dismiss_slowcharger", STORAGE_KEY_SOUND_ENABLED]).then((pairs) => {
       if (pairs[0][1] === "1") setLowPowerDismissed(true);
       if (pairs[1][1] === "1") setSlowChargerDismissed(true);
+      const soundVal = pairs[2][1];
+      const enabled = soundVal === null ? true : soundVal !== "false";
+      setSoundEnabled(enabled);
+      soundEnabledRef.current = enabled;
     }).catch(() => {});
+
+    // Enable audio playback in iOS silent mode
+    if (Platform.OS !== "web") {
+      setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+    }
   }, []);
+
+  // Play Jacob's ladder sound when battery reaches 100% (fully charged)
+  useEffect(() => {
+    if (battery.mode === "full" && !soundFiredRef.current && soundEnabledRef.current && Platform.OS !== "web") {
+      soundFiredRef.current = true;
+      soundPlayer.seekTo(0);
+      soundPlayer.play();
+    }
+    // Reset so it can fire again next time the battery reaches full
+    if (battery.mode !== "full") {
+      soundFiredRef.current = false;
+    }
+  }, [battery.mode, soundPlayer]);
   const discount = useDiscountCode();
   const [discountCopied, setDiscountCopied] = useState(false);
 

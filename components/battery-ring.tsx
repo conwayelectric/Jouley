@@ -125,6 +125,7 @@ interface BatteryRingProps {
 export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: BatteryRingProps) {
   const sweepAnim = useRef(new Animated.Value(0)).current;
   const criticalOpacity = useRef(new Animated.Value(1)).current;
+  const fullPulse = useRef(new Animated.Value(1)).current;
   const [sweepProgress, setSweepProgress] = useState(0);
 
   // Charging sweep: sweepProgress 0→1 controls how much of the 20-point window is revealed
@@ -151,6 +152,22 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
       setSweepProgress(0);
     }
   }, [mode]);
+
+  // Fully-charged green pulse animation
+  useEffect(() => {
+    if (mode === "full") {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(fullPulse, { toValue: 0.55, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(fullPulse, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      return () => { pulse.stop(); fullPulse.setValue(1); };
+    } else {
+      fullPulse.setValue(1);
+    }
+  }, [mode, fullPulse]);
 
   // Critical low battery blink (≤10%)
   useEffect(() => {
@@ -215,7 +232,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.svgWrapper, { opacity: criticalOpacity }]}>
+      <Animated.View style={[styles.svgWrapper, { opacity: mode === "full" ? fullPulse : criticalOpacity }]}>
         <Svg width={SIZE} height={SIZE}>
           <Defs>
             <LinearGradient
@@ -316,13 +333,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             />
           ))}
 
-          {/* LAYER 5: Tip fade cap — only when NOT charging (avoids color bleed into gray zone) */}
-          {!isCharging && tipPct >= 2 && (
-            <Path
-              d={arcFillPath(fadeStartDeg, fillEndDeg, RADIUS, STROKE)}
-              fill="url(#tipFade)"
-            />
-          )}
+          {/* Layer 5 (tip fade cap) removed — caused color bleed artifacts */}
         </Svg>
       </Animated.View>
 

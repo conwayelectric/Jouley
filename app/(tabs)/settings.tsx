@@ -17,24 +17,28 @@ import * as Device from "expo-device";
 import {
   STORAGE_KEY_ALWAYS_ON,
   STORAGE_KEY_LAST_BACKGROUND_CHECK,
+  STORAGE_KEY_SOUND_ENABLED,
   registerBackgroundBatteryTask,
   unregisterBackgroundBatteryTask,
 } from "@/lib/background-battery-task";
 
 export default function SettingsScreen() {
   const [alwaysOn, setAlwaysOn] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [notifGranted, setNotifGranted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
 
   const loadSettings = useCallback(async () => {
-    const [stored, { status }, lastCheckTs] = await Promise.all([
+    const [stored, { status }, lastCheckTs, soundStored] = await Promise.all([
       AsyncStorage.getItem(STORAGE_KEY_ALWAYS_ON),
       Notifications.getPermissionsAsync(),
       AsyncStorage.getItem(STORAGE_KEY_LAST_BACKGROUND_CHECK),
+      AsyncStorage.getItem(STORAGE_KEY_SOUND_ENABLED),
     ]);
     // Default to true if never set
     setAlwaysOn(stored === null ? true : stored !== "false");
+    setSoundEnabled(soundStored === null ? true : soundStored !== "false");
     setNotifGranted(status === "granted");
     if (lastCheckTs) {
       const d = new Date(parseInt(lastCheckTs, 10));
@@ -59,6 +63,11 @@ export default function SettingsScreen() {
     } else {
       await unregisterBackgroundBatteryTask();
     }
+  };
+
+  const toggleSound = async (value: boolean) => {
+    setSoundEnabled(value);
+    await AsyncStorage.setItem(STORAGE_KEY_SOUND_ENABLED, String(value));
   };
 
   const requestNotifPermission = async () => {
@@ -140,6 +149,26 @@ export default function SettingsScreen() {
               </Text>
             </View>
           )}
+        </View>
+
+        {/* Sound Section */}
+        <Text style={styles.sectionLabel}>SOUND</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.rowTitle}>Completion Sound</Text>
+              <Text style={styles.rowDesc}>
+                Plays a sound effect when your battery reaches 100% fully charged.
+              </Text>
+            </View>
+            <Switch
+              value={soundEnabled}
+              onValueChange={toggleSound}
+              trackColor={{ false: "#D1D5DB", true: "#16A34A" }}
+              thumbColor={soundEnabled ? "#FFFFFF" : "#F9FAFB"}
+              ios_backgroundColor="#D1D5DB"
+            />
+          </View>
         </View>
 
         {/* Notifications Section */}

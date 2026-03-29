@@ -105,3 +105,7 @@
 - [x] Add 80% tick mark back
 - [x] Draw ticks behind arc ring (z-order: ticks first, then arc)
 - [x] Charging animation: render full gradient arc always, gray track reveals color by being removed in sweep window
+- [x] Remove tip fade cap entirely (discharging and charging)
+- [x] Add fully-charged green pulse animation when mode === "full"
+- [x] Add Jacob's ladder sound (first 1 second) when battery reaches 100%
+- [x] Add sound on/off toggle in Settings screen
