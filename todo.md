@@ -111,6 +111,6 @@
 - [x] Add sound on/off toggle in Settings screen
 - [x] Replace completion sound with Uppbeat bubble pop & ding
 - [x] Update discount card description text with Conway Electric brand context
-- [ ] Arc fill leading edge: cut at radial angle matching tick mark (not flat perpendicular)
-- [ ] Device temp block: text overflows outside border — constrain to block width
-- [ ] Device temp block: add centered DEVICE TEMP label at top, move zone labels below it and above bar
+- [x] Arc fill leading edge: cut at radial angle matching tick mark (not flat perpendicular)
+- [x] Device temp block: text overflows outside border — constrain to block width
+- [x] Device temp block: add centered DEVICE TEMP label at top, move zone labels below it and above bar
