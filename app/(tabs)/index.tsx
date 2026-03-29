@@ -356,7 +356,7 @@ export default function HomeScreen() {
               onPress={() => Linking.openURL("https://conwaygoods.com")}
               activeOpacity={0.75}
             >
-              <Text style={styles.shopNowText}>🛍️ SHOP NOW AT CONWAYGOODS.COM</Text>
+              <Text style={styles.shopNowText}>SHOP NOW CONWAYGOODS.COM</Text>
             </TouchableOpacity>
           </View>
         )}
