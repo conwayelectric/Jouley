@@ -112,16 +112,30 @@ async function requestNotificationPermission(): Promise<boolean> {
 }
 
 async function sendWarningNotification(minutesLeft: number, drainRatePerMin: number | null) {
-  const urgency = minutesLeft <= 5 ? "🔴" : minutesLeft <= 10 ? "🟠" : "⚠️";
   const rateStr = drainRatePerMin ? ` Drain rate: ${drainRatePerMin.toFixed(2)}%/min.` : "";
+  let title: string;
+  let body: string;
+  if (minutesLeft <= 2) {
+    title = "🔋 2 Minutes Remaining";
+    body = `Plug in now and you'll be back in action fast!${rateStr}`;
+  } else if (minutesLeft <= 5) {
+    title = "🔋 5 Minutes Left — Let's Get You Charged!";
+    body = `You have about ${minutesLeft} minutes left. A quick plug-in now and you'll be back to 100%!${rateStr}`;
+  } else if (minutesLeft <= 7) {
+    title = `⚡ ${minutesLeft} Minutes Remaining — You're Doing Great!`;
+    body = `Still ${minutesLeft} minutes to go. Time to plug in and keep the momentum going!${rateStr}`;
+  } else if (minutesLeft <= 10) {
+    title = `⚡ ${minutesLeft} Minutes to Go!`;
+    body = `A quick charge now will keep you going strong. Open Power Monitor to track your progress.${rateStr}`;
+  } else if (minutesLeft <= 15) {
+    title = `👍 About ${minutesLeft} Minutes Remaining`;
+    body = `You've still got time! Now's a great moment to find a charger and stay ahead of the curve.${rateStr}`;
+  } else {
+    title = `✨ Great News — ${minutesLeft} Minutes Left!`;
+    body = `Your battery is starting to get low, but you have plenty of time. Open Power Monitor to see how to extend your time.${rateStr}`;
+  }
   await Notifications.scheduleNotificationAsync({
-    content: {
-      title: `${urgency} Battery Warning — ${minutesLeft} min left`,
-      body: minutesLeft <= 2
-        ? `Battery critically low — plug in immediately!${rateStr}`
-        : `${minutesLeft} min of battery remaining — plug in soon.${rateStr}`,
-      sound: "battery-alert.wav",
-    },
+    content: { title, body, sound: "battery-alert.wav" },
     trigger: null,
   });
 }

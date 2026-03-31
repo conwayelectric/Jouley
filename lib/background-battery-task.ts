@@ -156,10 +156,33 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
             const lowPowerTip = isLowLevel
               ? " Enable Low Power Mode: Settings → Battery."
               : "";
+            let bgTitle: string;
+            let bgBody: string;
+            const levelStr = `${estimatedLevel.toFixed(0)}%`;
+            const rateStr = `Drain rate: ${drainRatePerMin.toFixed(2)}%/min.`;
+            if (threshold <= 2) {
+              bgTitle = "🔋 2 Minutes Remaining";
+              bgBody = `Plug in now and you'll be back in action fast! (${levelStr}) ${rateStr}${lowPowerTip}`;
+            } else if (threshold <= 5) {
+              bgTitle = "🔋 5 Minutes Left — Let's Get You Charged!";
+              bgBody = `You have about ${threshold} minutes left. A quick plug-in now and you'll be back to 100%! (${levelStr}) ${rateStr}${lowPowerTip}`;
+            } else if (threshold <= 7) {
+              bgTitle = `⚡ ${threshold} Minutes Remaining — You're Doing Great!`;
+              bgBody = `Still ${threshold} minutes to go. Time to plug in and keep the momentum going! (${levelStr}) ${rateStr}${lowPowerTip}`;
+            } else if (threshold <= 10) {
+              bgTitle = `⚡ ${threshold} Minutes to Go!`;
+              bgBody = `A quick charge now will keep you going strong. (${levelStr}) ${rateStr}${lowPowerTip}`;
+            } else if (threshold <= 15) {
+              bgTitle = `👍 About ${threshold} Minutes Remaining`;
+              bgBody = `You've still got time! Now's a great moment to find a charger. (${levelStr}) ${rateStr}${lowPowerTip}`;
+            } else {
+              bgTitle = `✨ Great News — ${threshold} Minutes Left!`;
+              bgBody = `Your battery is starting to get low, but you have plenty of time. Open Power Monitor to see how to extend your time. (${levelStr}) ${rateStr}${lowPowerTip}`;
+            }
             await Notifications.scheduleNotificationAsync({
               content: {
-                title: `⚡ ${threshold} Minutes of Battery Remaining`,
-                body: `Estimated ${threshold} min left (${estimatedLevel.toFixed(0)}%). Drain rate: ${drainRatePerMin.toFixed(2)}%/min. Plug in soon!${lowPowerTip}`,
+                title: bgTitle,
+                body: bgBody,
                 sound: "battery-alert.wav",
               },
               trigger: null, // fire immediately
@@ -182,10 +205,11 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
       const minutesStr = minutesRemaining
         ? ` (~${minutesRemaining} min remaining)`
         : "";
+      const friendlyMinStr = minutesRemaining ? ` You still have about ${minutesRemaining} minutes of use left.` : "";
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `🔴 Low Battery — ${levelPct}% remaining`,
-          body: `Your battery is running low.${minutesStr} Plug in soon.${rateStr} Enable Low Power Mode: Settings → Battery.`,
+          title: `💡 Heads Up! Battery at ${levelPct}%`,
+          body: `Great news — you still have plenty of time to find a charger!${friendlyMinStr}${rateStr} Tip: Low Power Mode (Settings → Battery) can stretch your time even further.`,
           sound: "battery-alert.wav",
         },
         trigger: null,

@@ -292,11 +292,11 @@ export default function HomeScreen() {
             <Text style={styles.infoCardText}>
               You have approximately {formatTime(battery.minutesRemaining)} of use remaining.
               {battery.minutesRemaining > 60
-                ? " Your battery is in good shape."
-                : " Consider charging soon to avoid interruption."}
+                ? " You're in great shape — plenty of power ahead!"
+                : " You're doing well! A charge now would keep you going all day."}
             </Text>
             <Text style={styles.infoCardNote}>
-              Warnings will appear at 20, 15, 10, 7, 5, and 2 minutes remaining.
+              We'll give you friendly reminders at 20, 15, 10, 7, 5, and 2 minutes so you're never caught off guard.
             </Text>
           </View>
         )}
@@ -318,7 +318,7 @@ export default function HomeScreen() {
             <View style={styles.suggestionText}>
               <Text style={styles.suggestionTitle}>Enable Low Power Mode</Text>
               <Text style={styles.suggestionBody}>
-                Your battery is low. Go to Settings → Battery and turn on Low Power Mode to extend battery life.
+                Want to stretch your battery further? Go to Settings → Battery and turn on Low Power Mode — it can add significant extra time!
               </Text>
             </View>
             <TouchableOpacity
@@ -336,9 +336,9 @@ export default function HomeScreen() {
           <View style={[styles.suggestionCard, styles.suggestionCardBlue]}>
             <Text style={styles.suggestionIcon}>🔌</Text>
             <View style={styles.suggestionText}>
-              <Text style={[styles.suggestionTitle, styles.suggestionTitleBlue]}>Slow Charger Detected</Text>
+              <Text style={[styles.suggestionTitle, styles.suggestionTitleBlue]}>Boost Your Charge Speed</Text>
               <Text style={[styles.suggestionBody, styles.suggestionBodyBlue]}>
-                Charging at less than 0.2%/min. Try a higher-wattage charger or a different cable for faster charging.
+                You're charging, which is great! For even faster results, try a higher-wattage charger or a different cable.
               </Text>
             </View>
             <TouchableOpacity

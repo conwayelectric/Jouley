@@ -32,12 +32,12 @@ function getWarningStyle(minutes: number) {
 }
 
 function getWarningMessage(minutes: number): string {
-  if (minutes <= 2) return "Battery critically low — plug in immediately!";
-  if (minutes <= 5) return `Only ${minutes} minutes remaining — charge now!`;
-  if (minutes <= 7) return `${minutes} minutes of battery left — find a charger.`;
-  if (minutes <= 10) return `${minutes} minutes remaining — consider charging soon.`;
-  if (minutes <= 15) return `${minutes} minutes of battery remaining.`;
-  return `${minutes} minutes of battery remaining.`;
+  if (minutes <= 2) return "Plug in now and you'll be back in action fast!";
+  if (minutes <= 5) return `${minutes} minutes left — a quick plug-in now and you'll be back to 100%!`;
+  if (minutes <= 7) return `${minutes} minutes to go — time to plug in and keep the momentum going!`;
+  if (minutes <= 10) return `${minutes} minutes left — a quick charge now will keep you going strong!`;
+  if (minutes <= 15) return `About ${minutes} minutes remaining — now's a great time to find a charger!`;
+  return `Great news — you still have ${minutes} minutes! Open Power Monitor to see how to extend your time.`;
 }
 
 export function WarningBanner({ minutesLeft, activeWarning }: WarningBannerProps) {
@@ -97,7 +97,7 @@ export function WarningBanner({ minutesLeft, activeWarning }: WarningBannerProps
     >
       <Text style={styles.icon}>{style.icon}</Text>
       <View style={styles.textContainer}>
-        <Text style={[styles.title, { color: style.text }]}>BATTERY WARNING</Text>
+        <Text style={[styles.title, { color: style.text }]}>BATTERY TIP</Text>
         <Text style={[styles.message, { color: style.text }]}>{message}</Text>
       </View>
     </Animated.View>
