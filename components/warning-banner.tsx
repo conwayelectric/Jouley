@@ -32,12 +32,12 @@ function getWarningStyle(minutes: number) {
 }
 
 function getWarningMessage(minutes: number): string {
-  if (minutes <= 2) return "Plug in now and you'll be back in action fast!";
-  if (minutes <= 5) return `${minutes} minutes left — a quick plug-in now and you'll be back to 100%!`;
-  if (minutes <= 7) return `${minutes} minutes to go — time to plug in and keep the momentum going!`;
-  if (minutes <= 10) return `${minutes} minutes left — a quick charge now will keep you going strong!`;
-  if (minutes <= 15) return `About ${minutes} minutes remaining — now's a great time to find a charger!`;
-  return `Great news — you still have ${minutes} minutes! Open Power Monitor to see how to extend your time.`;
+  if (minutes <= 2) return "Plug in now and you'll be back in action fast.";
+  if (minutes <= 5) return `${minutes} minutes left — a quick plug-in now and you'll be back to 100%.`;
+  if (minutes <= 7) return `${minutes} minutes to go — time to plug in and keep the momentum going.`;
+  if (minutes <= 10) return `${minutes} minutes left — a quick charge now will keep you going strong.`;
+  if (minutes <= 15) return `About ${minutes} minutes remaining — now's a great time to find a charger.`;
+  return `Great news — you still have ${minutes} minutes. Open Power Monitor to see how to extend your time.`;
 }
 
 export function WarningBanner({ minutesLeft, activeWarning }: WarningBannerProps) {

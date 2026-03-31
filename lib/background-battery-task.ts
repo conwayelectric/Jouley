@@ -162,21 +162,21 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
             const rateStr = `Drain rate: ${drainRatePerMin.toFixed(2)}%/min.`;
             if (threshold <= 2) {
               bgTitle = "🔋 2 Minutes Remaining";
-              bgBody = `Plug in now and you'll be back in action fast! (${levelStr}) ${rateStr}${lowPowerTip}`;
+              bgBody = `Plug in now and you'll be back in action fast. (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else if (threshold <= 5) {
-              bgTitle = "🔋 5 Minutes Left — Let's Get You Charged!";
-              bgBody = `You have about ${threshold} minutes left. A quick plug-in now and you'll be back to 100%! (${levelStr}) ${rateStr}${lowPowerTip}`;
+              bgTitle = "🔋 5 Minutes Left — Let's Get You Charged";
+              bgBody = `You have about ${threshold} minutes left. A quick plug-in now and you'll be back to 100%. (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else if (threshold <= 7) {
-              bgTitle = `⚡ ${threshold} Minutes Remaining — You're Doing Great!`;
-              bgBody = `Still ${threshold} minutes to go. Time to plug in and keep the momentum going! (${levelStr}) ${rateStr}${lowPowerTip}`;
+              bgTitle = `⚡ ${threshold} Minutes Remaining — You're Doing Great`;
+              bgBody = `Still ${threshold} minutes to go. Time to plug in and keep the momentum going. (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else if (threshold <= 10) {
-              bgTitle = `⚡ ${threshold} Minutes to Go!`;
+              bgTitle = `⚡ ${threshold} Minutes to Go`;
               bgBody = `A quick charge now will keep you going strong. (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else if (threshold <= 15) {
               bgTitle = `👍 About ${threshold} Minutes Remaining`;
-              bgBody = `You've still got time! Now's a great moment to find a charger. (${levelStr}) ${rateStr}${lowPowerTip}`;
+              bgBody = `You've still got time. Now's a great moment to find a charger. (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else {
-              bgTitle = `✨ Great News — ${threshold} Minutes Left!`;
+              bgTitle = `✨ Great News — ${threshold} Minutes Left`;
               bgBody = `Your battery is starting to get low, but you have plenty of time. Open Power Monitor to see how to extend your time. (${levelStr}) ${rateStr}${lowPowerTip}`;
             }
             await Notifications.scheduleNotificationAsync({
@@ -208,8 +208,8 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
       const friendlyMinStr = minutesRemaining ? ` You still have about ${minutesRemaining} minutes of use left.` : "";
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `💡 Heads Up! Battery at ${levelPct}%`,
-          body: `Great news — you still have plenty of time to find a charger!${friendlyMinStr}${rateStr} Tip: Low Power Mode (Settings → Battery) can stretch your time even further.`,
+          title: `💡 Heads Up — Battery at ${levelPct}%`,
+          body: `Great news — you still have plenty of time to find a charger.${friendlyMinStr}${rateStr} Tip: Low Power Mode (Settings → Battery) can stretch your time even further.`,
           sound: "battery-alert.wav",
         },
         trigger: null,

@@ -118,3 +118,4 @@
 - [x] Add unlabeled tick marks at 15% and 25% on the battery ring arc
 - [x] Fix 5% label spacing on battery ring — add space between "5" and "%"
 - [x] Rewrite all battery warning messages with positive, encouraging tone (push notifications, in-app banner, info cards, suggestion cards)
+- [x] Remove all exclamation points from battery warning messages

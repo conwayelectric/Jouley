@@ -292,8 +292,8 @@ export default function HomeScreen() {
             <Text style={styles.infoCardText}>
               You have approximately {formatTime(battery.minutesRemaining)} of use remaining.
               {battery.minutesRemaining > 60
-                ? " You're in great shape — plenty of power ahead!"
-                : " You're doing well! A charge now would keep you going all day."}
+                ? " You're in great shape — plenty of power ahead."
+                : " You're doing well. A charge now would keep you going all day."}
             </Text>
             <Text style={styles.infoCardNote}>
               We'll give you friendly reminders at 20, 15, 10, 7, 5, and 2 minutes so you're never caught off guard.
@@ -318,7 +318,7 @@ export default function HomeScreen() {
             <View style={styles.suggestionText}>
               <Text style={styles.suggestionTitle}>Enable Low Power Mode</Text>
               <Text style={styles.suggestionBody}>
-                Want to stretch your battery further? Go to Settings → Battery and turn on Low Power Mode — it can add significant extra time!
+                Want to stretch your battery further? Go to Settings → Battery and turn on Low Power Mode — it can add significant extra time.
               </Text>
             </View>
             <TouchableOpacity
@@ -338,7 +338,7 @@ export default function HomeScreen() {
             <View style={styles.suggestionText}>
               <Text style={[styles.suggestionTitle, styles.suggestionTitleBlue]}>Boost Your Charge Speed</Text>
               <Text style={[styles.suggestionBody, styles.suggestionBodyBlue]}>
-                You're charging, which is great! For even faster results, try a higher-wattage charger or a different cable.
+                You're charging, which is great. For even faster results, try a higher-wattage charger or a different cable.
               </Text>
             </View>
             <TouchableOpacity
