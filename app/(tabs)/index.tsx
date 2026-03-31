@@ -55,6 +55,7 @@ export default function HomeScreen() {
   const [isLowPowerMode, setIsLowPowerMode] = useState(false);
   const [lowPowerDismissed, setLowPowerDismissed] = useState(false);
   const [slowChargerDismissed, setSlowChargerDismissed] = useState(false);
+  const [drainSpikeDismissed, setDrainSpikeDismissed] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const soundEnabledRef = useRef(true);
   const soundPlayer = useAudioPlayer(fullyChargedSound);
@@ -65,6 +66,7 @@ export default function HomeScreen() {
     AsyncStorage.multiGet(["dismiss_lowpower", "dismiss_slowcharger", STORAGE_KEY_SOUND_ENABLED]).then((pairs) => {
       if (pairs[0][1] === "1") setLowPowerDismissed(true);
       if (pairs[1][1] === "1") setSlowChargerDismissed(true);
+      // Note: drain spike dismissal is session-only (not persisted) — resets each time app opens
       const soundVal = pairs[2][1];
       const enabled = soundVal === null ? true : soundVal !== "false";
       setSoundEnabled(enabled);
@@ -116,6 +118,10 @@ export default function HomeScreen() {
   const dismissSlowCharger = () => {
     setSlowChargerDismissed(true);
     AsyncStorage.setItem("dismiss_slowcharger", "1").catch(() => {});
+  };
+  const dismissDrainSpike = () => {
+    setDrainSpikeDismissed(true);
+    // Session-only dismissal — no AsyncStorage persistence
   };
 
   // Detect Low Power Mode
@@ -344,6 +350,32 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.suggestionDismiss}
               onPress={dismissSlowCharger}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.suggestionDismissText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Drain Spike Card — shown when drain rate spikes 2× above baseline */}
+        {battery.drainSpike && !isCharging && !drainSpikeDismissed && (
+          <View style={[styles.suggestionCard, styles.suggestionCardAmber]}>
+            <Text style={styles.suggestionIcon}>⚡</Text>
+            <View style={styles.suggestionText}>
+              <Text style={[styles.suggestionTitle, styles.suggestionTitleAmber]}>Higher Drain Detected</Text>
+              <Text style={[styles.suggestionBody, styles.suggestionBodyAmber]}>
+                Your battery is draining faster than usual. A power-hungry app may be running in the background. Check Settings → Battery to see which apps are using the most power.
+              </Text>
+              <TouchableOpacity
+                onPress={() => Linking.openURL("App-prefs:BATTERY_USAGE").catch(() => Linking.openURL("App-prefs:root=BATTERY_USAGE").catch(() => {}))}
+                style={styles.spikeButton}
+              >
+                <Text style={styles.spikeButtonText}>Check Battery Usage</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.suggestionDismiss}
+              onPress={dismissDrainSpike}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.suggestionDismissText}>✕</Text>
@@ -725,6 +757,30 @@ const styles = StyleSheet.create({
   },
   suggestionBodyBlue: {
     color: "#1E40AF",
+  },
+  suggestionCardAmber: {
+    backgroundColor: "#FFFBEB",
+    borderColor: "#FCD34D",
+  },
+  suggestionTitleAmber: {
+    color: "#92400E",
+  },
+  suggestionBodyAmber: {
+    color: "#78350F",
+  },
+  spikeButton: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    backgroundColor: "#F59E0B",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  spikeButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
   },
   suggestionDismiss: {
     paddingLeft: 4,

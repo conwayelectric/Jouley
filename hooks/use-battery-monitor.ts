@@ -25,6 +25,15 @@ const CHARGE_MILESTONES = [10, 25, 50, 75, 100];
 // How many samples to keep for rate calculation
 const SAMPLE_WINDOW = 20;
 
+// Short window for spike detection (~2 minutes at 5s poll = 24 samples, use last 4 for ~20s)
+const SPIKE_WINDOW = 4;
+
+// Spike threshold: short-window rate must be this multiple of baseline to flag a spike
+const SPIKE_MULTIPLIER = 2.0;
+
+// Minimum baseline rate before spike detection activates (avoid false positives at very low drain)
+const SPIKE_MIN_BASELINE = 0.1;
+
 // Display refresh interval (5 seconds)
 const DISPLAY_POLL_INTERVAL = 5_000;
 
@@ -61,6 +70,7 @@ export interface BatteryMonitorState {
   drainRatePerMin: number | null;
   minutesRemaining: number | null;
   activeWarning: number | null;
+  drainSpike: boolean;        // true when short-window drain rate is 2× the baseline
   // Charging
   chargeRatePerMin: number | null;
   minutesToFull: number | null;
@@ -158,6 +168,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
     drainRatePerMin: null,
     minutesRemaining: null,
     activeWarning: null,
+    drainSpike: false,
     chargeRatePerMin: null,
     minutesToFull: null,
     milestones: CHARGE_MILESTONES.map((p) => ({ percent: p, minutesAway: null, reached: false })),
@@ -171,6 +182,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
   const firedMilestonesRef = useRef<Set<number>>(new Set());
   const prevModeRef = useRef<BatteryMode>("unknown");
   const notifPermRef = useRef<boolean>(false);
+  const baselineDrainRateRef = useRef<number | null>(null); // long-window baseline for spike detection
 
   // Session tracking
   const sessionStartLevelRef = useRef<number | null>(null);
@@ -262,9 +274,26 @@ export function useBatteryMonitor(): BatteryMonitorState {
           sessionDrainSamplesRef.current.push(liveRate);
           storedDrainRateRef.current = liveRate; // keep ref in sync
           updateStoredDrainRate(levelPct, liveRate);
+          // Update baseline: use long-window rate as the stable reference
+          if (baselineDrainRateRef.current === null) {
+            baselineDrainRateRef.current = liveRate;
+          } else {
+            // Slowly update baseline with exponential smoothing (alpha=0.1)
+            baselineDrainRateRef.current = baselineDrainRateRef.current * 0.9 + liveRate * 0.1;
+          }
         } else {
           updateStoredDrainRate(levelPct, null);
         }
+
+        // Spike detection: compare short-window rate to smoothed baseline
+        const shortRate = calcRatePerMin(samplesRef.current.slice(-SPIKE_WINDOW), MAX_DRAIN_RATE);
+        const baseline = baselineDrainRateRef.current;
+        const drainSpike =
+          shortRate !== null &&
+          baseline !== null &&
+          baseline >= SPIKE_MIN_BASELINE &&
+          shortRate >= SPIKE_MIN_BASELINE &&
+          shortRate >= baseline * SPIKE_MULTIPLIER;
 
         const minutesRemaining =
           drainRate && drainRate > 0 ? Math.ceil(levelPct / drainRate) : null;
@@ -297,6 +326,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
           drainRatePerMin: drainRate,
           minutesRemaining,
           activeWarning,
+          drainSpike,
           chargeRatePerMin: null,
           minutesToFull: null,
           milestones: CHARGE_MILESTONES.map((p) => ({ percent: p, minutesAway: null, reached: false })),
