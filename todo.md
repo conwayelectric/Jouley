@@ -125,4 +125,3 @@
 - [x] Add charging-state message between battery ring and time display ("On your way back up", "Charging nicely", etc.)
 - [x] Tune drain rate thresholds: low ≤0.15%/min, medium 0.15–0.6%/min, high >0.6%/min (typical iPhone usage)
 - [x] Fix battery ring gradient: red 0–20%, orange 20–50%, yellow 50–75%, green 75–100%
-- [x] Fix battery ring gradient to be radial/perpendicular to the arc curve — per-zone arcs with radial gradient axes
