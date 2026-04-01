@@ -1,6 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
 import { View, Text, Image, StyleSheet, Animated, Easing } from "react-native";
-import Svg, { Circle, Line, Path, Defs, LinearGradient, Stop, Text as SvgText } from "react-native-svg";
+import Svg, {
+  Circle, Line, Path, Defs, LinearGradient, Stop,
+  Text as SvgText, ClipPath, G, Rect,
+} from "react-native-svg";
 import { BatteryMode } from "@/hooks/use-battery-monitor";
 
 const SIZE = 260;
@@ -9,57 +12,63 @@ const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const ARC_RATIO = 0.75; // 270° arc
 const ARC_DEG = 270;
-const START_DEG = 135;
+const START_DEG = 135; // arc starts at bottom-left
 const CX = SIZE / 2;
 const CY = SIZE / 2;
 const COLOR_TRACK = "#E5E7EB";
 
-// Gradient color zones — 7.5-point wide blends centered on each boundary:
-//  red    (#DC2626): 0–16.5% solid
-//  blend  16.5–23.5%: red → orange  (centered on 20%)
-//  orange (#EA580C): 23.5–46.5% solid
-//  blend  46.5–53.5%: orange → yellow  (centered on 50%)
-//  yellow (#FFE135): 53.5–71.5% solid
-//  blend  71.5–78.5%: yellow → green  (centered on 75%)
-//  green  (#16A34A): 78.5–100% solid
-const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
-  { pct: 0,    r: 220, g: 38,  b: 38  },
-  { pct: 16.5, r: 220, g: 38,  b: 38  },
-  { pct: 23.5, r: 234, g: 88,  b: 12  },
-  { pct: 46.5, r: 234, g: 88,  b: 12  },
-  { pct: 53.5, r: 255, g: 225, b: 53  },
-  { pct: 71.5, r: 255, g: 225, b: 53  },
-  { pct: 78.5, r: 22,  g: 163, b: 74  },
-  { pct: 100,  r: 22,  g: 163, b: 74  },
-];
+// ─── Colour palette ────────────────────────────────────────────────────────────
+// red 0–20%, orange 20–50%, yellow 50–75%, green 75–100%
+// The conic gradient circle has these colours placed at the correct angular
+// positions around the full 360° circle, so when the arc ring masks it the
+// transitions are naturally perpendicular to the stroke.
 
-function interpolateColor(pct: number): { r: number; g: number; b: number } {
-  const stops = GRADIENT_STOPS;
-  let lo = stops[0];
-  let hi = stops[stops.length - 1];
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (pct >= stops[i].pct && pct <= stops[i + 1].pct) {
-      lo = stops[i];
-      hi = stops[i + 1];
-      break;
-    }
-  }
-  const span = hi.pct - lo.pct;
-  const t = span === 0 ? 0 : (pct - lo.pct) / span;
-  return {
-    r: Math.round(lo.r + t * (hi.r - lo.r)),
-    g: Math.round(lo.g + t * (hi.g - lo.g)),
-    b: Math.round(lo.b + t * (hi.b - lo.b)),
-  };
+// Map battery % → angle on the SVG circle (degrees, SVG convention: 0° = right)
+function pctToDeg(pct: number): number {
+  return START_DEG + ARC_DEG * (pct / 100);
 }
 
-function colorToString(c: { r: number; g: number; b: number }): string {
-  return `rgb(${c.r},${c.g},${c.b})`;
+// The colour stops we want at specific % positions on the arc
+// (placed at the angular position that corresponds to that battery level)
+const COLOR_STOPS: Array<{ pct: number; color: string }> = [
+  { pct: 0,   color: "#DC2626" }, // red
+  { pct: 20,  color: "#DC2626" }, // red → boundary
+  { pct: 20,  color: "#EA580C" }, // orange boundary
+  { pct: 50,  color: "#EA580C" }, // orange → boundary
+  { pct: 50,  color: "#FFE135" }, // yellow boundary
+  { pct: 75,  color: "#FFE135" }, // yellow → boundary
+  { pct: 75,  color: "#16A34A" }, // green boundary
+  { pct: 100, color: "#16A34A" }, // green
+];
+
+// Interpolate colour at any % for the centre text
+function interpolateArcColor(pct: number): string {
+  for (let i = 0; i < COLOR_STOPS.length - 1; i++) {
+    const a = COLOR_STOPS[i];
+    const b = COLOR_STOPS[i + 1];
+    if (pct >= a.pct && pct <= b.pct && a.color !== b.color) {
+      // blend between the two
+      const t = (pct - a.pct) / (b.pct - a.pct);
+      const parse = (hex: string) => [
+        parseInt(hex.slice(1, 3), 16),
+        parseInt(hex.slice(3, 5), 16),
+        parseInt(hex.slice(5, 7), 16),
+      ];
+      const [r1, g1, b1] = parse(a.color);
+      const [r2, g2, b2] = parse(b.color);
+      const r = Math.round(r1 + t * (r2 - r1));
+      const g = Math.round(g1 + t * (g2 - g1));
+      const bv = Math.round(b1 + t * (b2 - b1));
+      return `rgb(${r},${g},${bv})`;
+    }
+    if (pct >= a.pct && pct <= b.pct) return a.color;
+  }
+  return COLOR_STOPS[COLOR_STOPS.length - 1].color;
 }
 
 function getRingColorString(level: number, mode: BatteryMode): string {
-  if (mode === "full") return colorToString(interpolateColor(100));
-  return colorToString(interpolateColor(level));
+  if (mode === "full") return "#16A34A";
+  return interpolateArcColor(level);
 }
 
 function polarToXY(angleDeg: number, r: number): { x: number; y: number } {
@@ -67,61 +76,91 @@ function polarToXY(angleDeg: number, r: number): { x: number; y: number } {
   return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
 }
 
-// Single continuous arc path from startDeg to endDeg at radius r
-function arcStrokePath(startDeg: number, endDeg: number, r: number): string {
+function arcPath(startDeg: number, endDeg: number, r: number): string {
   const s = polarToXY(startDeg, r);
   const e = polarToXY(endDeg, r);
   const largeArc = endDeg - startDeg > 180 ? 1 : 0;
   return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 1 ${e.x} ${e.y}`;
 }
 
-// Build SVG linearGradient stop offsets for a sub-range of the full 0–100% arc.
-// Returns an array of {offset, color} pairs mapped to the gradient stops that
-// fall within [startPct, endPct], so the gradient covers exactly that range.
-function buildGradientStops(
-  startPct: number,
-  endPct: number
-): Array<{ offset: string; color: string }> {
-  if (endPct <= startPct) return [];
-  const span = endPct - startPct;
-  const result: Array<{ offset: string; color: string }> = [];
+// ─── Conic gradient simulation ─────────────────────────────────────────────────
+// We approximate a conic gradient by splitting the full 360° circle into thin
+// pie wedges. Each wedge is a filled triangle from the centre to two points on
+// the circumference, coloured with a linearGradient whose axis runs along the
+// wedge (tangentially), so the colour changes smoothly around the circle.
+// The arc ring ClipPath then masks everything so only the narrow band is visible.
 
-  // Always add a stop at the start
-  result.push({
-    offset: "0%",
-    color: colorToString(interpolateColor(startPct)),
-  });
+const WEDGE_DEG = 3; // degrees per wedge — small enough for smooth transitions
+const CIRCLE_R = SIZE; // large enough to fill the entire SVG
 
-  // Add stops for any GRADIENT_STOPS that fall within the range
-  for (const stop of GRADIENT_STOPS) {
-    if (stop.pct > startPct && stop.pct < endPct) {
-      const offset = ((stop.pct - startPct) / span) * 100;
-      result.push({
-        offset: `${offset.toFixed(2)}%`,
-        color: colorToString({ r: stop.r, g: stop.g, b: stop.b }),
-      });
-    }
+function buildConicWedges(upToDeg: number): React.ReactNode[] {
+  const wedges: React.ReactNode[] = [];
+  const gradDefs: React.ReactNode[] = [];
+
+  // We only need wedges from START_DEG to upToDeg (the filled portion)
+  const totalDeg = upToDeg - START_DEG;
+  if (totalDeg <= 0) return [];
+
+  const numWedges = Math.ceil(totalDeg / WEDGE_DEG);
+
+  for (let i = 0; i < numWedges; i++) {
+    const wStartDeg = START_DEG + i * WEDGE_DEG;
+    const wEndDeg = Math.min(START_DEG + (i + 1) * WEDGE_DEG, upToDeg);
+    const wPctStart = ((wStartDeg - START_DEG) / ARC_DEG) * 100;
+    const wPctEnd = ((wEndDeg - START_DEG) / ARC_DEG) * 100;
+
+    const colorStart = interpolateArcColor(Math.min(wPctStart, 100));
+    const colorEnd = interpolateArcColor(Math.min(wPctEnd, 100));
+
+    const p1 = polarToXY(wStartDeg, CIRCLE_R);
+    const p2 = polarToXY(wEndDeg, CIRCLE_R);
+
+    // Gradient axis runs from p1 to p2 (tangentially around the circle)
+    const gradId = `cg${i}`;
+
+    gradDefs.push(
+      <LinearGradient
+        key={`gd${i}`}
+        id={gradId}
+        x1={p1.x} y1={p1.y}
+        x2={p2.x} y2={p2.y}
+        gradientUnits="userSpaceOnUse"
+      >
+        <Stop offset="0%" stopColor={colorStart} stopOpacity="1" />
+        <Stop offset="100%" stopColor={colorEnd} stopOpacity="1" />
+      </LinearGradient>
+    );
+
+    // Filled triangle: centre → p1 → p2
+    const d = `M ${CX} ${CY} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`;
+    wedges.push(
+      <Path key={`w${i}`} d={d} fill={`url(#${gradId})`} stroke="none" />
+    );
   }
 
-  // Always add a stop at the end
-  result.push({
-    offset: "100%",
-    color: colorToString(interpolateColor(endPct)),
-  });
-
-  return result;
+  return [
+    <Defs key="wedge-defs">{gradDefs}</Defs>,
+    <G key="wedge-group">{wedges}</G>,
+  ];
 }
 
-// Compute the bounding box endpoints for a linearGradient that runs along the arc
-// from startDeg to endDeg. We use the midpoint angle direction for the gradient axis
-// so it flows roughly along the arc direction.
-function arcGradientEndpoints(
-  startDeg: number,
-  endDeg: number
-): { x1: number; y1: number; x2: number; y2: number } {
-  const s = polarToXY(startDeg, RADIUS);
-  const e = polarToXY(endDeg, RADIUS);
-  return { x1: s.x, y1: s.y, x2: e.x, y2: e.y };
+// ─── Arc clip path ─────────────────────────────────────────────────────────────
+// The clip path is the arc stroke itself — a thick stroked path with no fill.
+// We use a Path with a large strokeWidth equal to STROKE, which clips to just
+// the ring band.
+function arcClipPath(id: string, startDeg: number, endDeg: number): React.ReactNode {
+  if (endDeg <= startDeg) return null;
+  return (
+    <ClipPath id={id}>
+      <Path
+        d={arcPath(startDeg, endDeg, RADIUS)}
+        stroke="white"
+        strokeWidth={STROKE}
+        strokeLinecap="butt"
+        fill="none"
+      />
+    </ClipPath>
+  );
 }
 
 interface BatteryRingProps {
@@ -137,7 +176,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const fullPulse = useRef(new Animated.Value(1)).current;
   const [sweepProgress, setSweepProgress] = useState(0);
 
-  // Charging sweep: sweepProgress 0→1 controls how much of the 20-point window is revealed
+  // Charging sweep animation
   useEffect(() => {
     if (mode === "charging") {
       const listener = sweepAnim.addListener(({ value }) => setSweepProgress(value));
@@ -162,13 +201,13 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
     }
   }, [mode]);
 
-  // Fully-charged green pulse animation
+  // Fully-charged green pulse
   useEffect(() => {
     if (mode === "full") {
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(fullPulse, { toValue: 0.55, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(fullPulse, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(fullPulse, { toValue: 1,    duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       );
       pulse.start();
@@ -178,13 +217,13 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
     }
   }, [mode, fullPulse]);
 
-  // Critical low battery blink (≤10%)
+  // Critical blink ≤10%
   useEffect(() => {
     if (mode === "discharging" && level <= 10) {
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(criticalOpacity, { toValue: 0.35, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(criticalOpacity, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(criticalOpacity, { toValue: 1,    duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       );
       pulse.start();
@@ -198,28 +237,14 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const isCharging = mode === "charging";
   const ringColor = getRingColorString(level, mode);
 
-  // Sweep window: the 20-point range below current level that animates during charging
+  // Charging sweep: 20-point window
   const SWEEP_WINDOW = 20;
   const windowStart = Math.max(0, effectiveLevel - SWEEP_WINDOW);
-
-  // sweepTip moves from windowStart → windowEnd as sweepProgress goes 0 → 1
   const sweepTip = windowStart + sweepProgress * (effectiveLevel - windowStart);
 
-  // Arc degree positions
   const solidEndPct = isCharging ? windowStart : effectiveLevel;
-  const solidStartDeg = START_DEG;
-  const solidEndDeg = START_DEG + ARC_DEG * (solidEndPct / 100);
-
-  const animStartDeg = START_DEG + ARC_DEG * (windowStart / 100);
-  const animEndDeg = START_DEG + ARC_DEG * (sweepTip / 100);
-
-  // Gradient endpoints for each arc
-  const solidGrad = arcGradientEndpoints(solidStartDeg, solidEndDeg);
-  const animGrad = arcGradientEndpoints(animStartDeg, animEndDeg);
-
-  // Gradient stops for each arc
-  const solidStops = buildGradientStops(0, solidEndPct);
-  const animStops = buildGradientStops(windowStart, sweepTip);
+  const solidEndDeg = pctToDeg(solidEndPct);
+  const sweepEndDeg = pctToDeg(sweepTip);
 
   // Tick marks
   const tickPercents = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100];
@@ -231,35 +256,12 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
       <Animated.View style={[styles.svgWrapper, { opacity: mode === "full" ? fullPulse : criticalOpacity }]}>
         <Svg width={SIZE} height={SIZE}>
           <Defs>
-            {/* Gradient for the solid (already-charged) arc */}
-            {solidStops.length >= 2 && (
-              <LinearGradient
-                id="solidGrad"
-                x1={solidGrad.x1} y1={solidGrad.y1}
-                x2={solidGrad.x2} y2={solidGrad.y2}
-                gradientUnits="userSpaceOnUse"
-              >
-                {solidStops.map((s, i) => (
-                  <Stop key={i} offset={s.offset} stopColor={s.color} stopOpacity="1" />
-                ))}
-              </LinearGradient>
-            )}
-            {/* Gradient for the animated charging sweep arc */}
-            {isCharging && animStops.length >= 2 && (
-              <LinearGradient
-                id="animGrad"
-                x1={animGrad.x1} y1={animGrad.y1}
-                x2={animGrad.x2} y2={animGrad.y2}
-                gradientUnits="userSpaceOnUse"
-              >
-                {animStops.map((s, i) => (
-                  <Stop key={i} offset={s.offset} stopColor={s.color} stopOpacity="1" />
-                ))}
-              </LinearGradient>
-            )}
+            {/* Clip paths for the arc bands */}
+            {solidEndPct > 0 && arcClipPath("solidClip", START_DEG, solidEndDeg)}
+            {isCharging && sweepTip > windowStart && arcClipPath("sweepClip", pctToDeg(windowStart), sweepEndDeg)}
           </Defs>
 
-          {/* LAYER 1: Tick marks — drawn first, behind the arc ring */}
+          {/* LAYER 1: Tick marks — behind everything */}
           {tickPercents.map((pct) => {
             const tickDeg = START_DEG + ARC_DEG * (pct / 100);
             const tickRad = (tickDeg * Math.PI) / 180;
@@ -269,37 +271,26 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             const y2 = CY + (INNER_EDGE - TICK_LENGTH) * Math.sin(tickRad);
             const isActive = pct <= effectiveLevel;
             const showLabel = pct === 5 || pct === 10 || pct === 20 || pct === 50 || pct === 75 || pct === 100;
-
             const labelR = INNER_EDGE - TICK_LENGTH - 10;
             let lx = CX + labelR * Math.cos(tickRad);
             let ly = CY + labelR * Math.sin(tickRad);
-
-            // Push 75% label further inward to clear the tick
             if (pct === 75) {
               const inwardRad = tickRad + Math.PI;
               lx += Math.cos(inwardRad) * 8;
               ly += Math.sin(inwardRad) * 8;
             }
-
             return (
               <React.Fragment key={pct}>
-                <Line
-                  x1={x1} y1={y1} x2={x2} y2={y2}
+                <Line x1={x1} y1={y1} x2={x2} y2={y2}
                   stroke={isActive ? "#999999" : "#CCCCCC"}
-                  strokeWidth={1.2}
-                  strokeLinecap="butt"
-                />
+                  strokeWidth={1.2} strokeLinecap="butt" />
                 {showLabel && (
-                  <SvgText
-                    x={lx} y={ly}
-                    textAnchor="middle"
-                    alignmentBaseline="middle"
-                    fontSize={8}
-                    fontWeight="700"
+                  <SvgText x={lx} y={ly}
+                    textAnchor="middle" alignmentBaseline="middle"
+                    fontSize={8} fontWeight="700"
                     fill={isActive ? "#555555" : "#AAAAAA"}
-                    letterSpacing={0.5}
-                  >
-                    {pct} %
+                    letterSpacing={0.5}>
+                    {pct} %
                   </SvgText>
                 )}
               </React.Fragment>
@@ -317,27 +308,20 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             transform={`rotate(${START_DEG} ${CX} ${CY})`}
           />
 
-          {/* LAYER 3: Single continuous gradient arc — solid portion (0 to solidEndPct) */}
-          {solidStops.length >= 2 && solidEndPct > 0 && (
-            <Path
-              d={arcStrokePath(solidStartDeg, solidEndDeg, RADIUS)}
-              stroke="url(#solidGrad)"
-              strokeWidth={STROKE}
-              strokeLinecap="butt"
-              fill="none"
-            />
+          {/* LAYER 3: Conic gradient circle, clipped to the solid arc band */}
+          {solidEndPct > 0 && (
+            <G clipPath="url(#solidClip)">
+              {buildConicWedges(solidEndDeg)}
+            </G>
           )}
 
-          {/* LAYER 4 (charging only): Single continuous gradient arc — animated sweep portion */}
-          {isCharging && animStops.length >= 2 && sweepTip > windowStart && (
-            <Path
-              d={arcStrokePath(animStartDeg, animEndDeg, RADIUS)}
-              stroke="url(#animGrad)"
-              strokeWidth={STROKE}
-              strokeLinecap="butt"
-              fill="none"
-            />
+          {/* LAYER 4 (charging only): Conic gradient circle, clipped to the sweep band */}
+          {isCharging && sweepTip > windowStart && (
+            <G clipPath="url(#sweepClip)">
+              {buildConicWedges(sweepEndDeg)}
+            </G>
           )}
+
         </Svg>
       </Animated.View>
 
@@ -357,9 +341,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             : mode === "full"
             ? "FULLY CHARGED"
             : mode === "discharging"
-            ? isCalculating
-              ? "MEASURING..."
-              : "DISCHARGING"
+            ? isCalculating ? "MEASURING..." : "DISCHARGING"
             : "UNKNOWN"}
         </Text>
         {isLowPowerMode && (
