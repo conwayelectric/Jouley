@@ -21,6 +21,7 @@ import {
   registerBackgroundBatteryTask,
   unregisterBackgroundBatteryTask,
 } from "@/lib/background-battery-task";
+import { STORAGE_KEY_ONBOARDING_DONE } from "@/components/onboarding-overlay";
 
 export default function SettingsScreen() {
   const [alwaysOn, setAlwaysOn] = useState(true);
@@ -68,6 +69,15 @@ export default function SettingsScreen() {
   const toggleSound = async (value: boolean) => {
     setSoundEnabled(value);
     await AsyncStorage.setItem(STORAGE_KEY_SOUND_ENABLED, String(value));
+  };
+
+  const resetWalkthrough = async () => {
+    await AsyncStorage.removeItem(STORAGE_KEY_ONBOARDING_DONE);
+    Alert.alert(
+      "Walkthrough Reset",
+      "The feature walkthrough will appear again the next time you open the Monitor tab.",
+      [{ text: "OK" }]
+    );
   };
 
   const requestNotifPermission = async () => {
@@ -269,6 +279,24 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Walkthrough Section */}
+        <Text style={styles.sectionLabel}>APP TOUR</Text>
+        <View style={styles.card}>
+          <View style={styles.rowText}>
+            <Text style={styles.rowTitle}>Feature Walkthrough</Text>
+            <Text style={styles.rowDesc}>
+              Re-run the interactive overlay tour that explains each dashboard feature.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.resetButton}
+            onPress={resetWalkthrough}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.resetButtonText}>Replay Tour</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Legal Section */}
         <Text style={styles.sectionLabel}>LEGAL</Text>
         <View style={styles.card}>
@@ -413,6 +441,20 @@ const styles = StyleSheet.create({
   badgeGranted: { backgroundColor: "#DCFCE7", borderWidth: 1, borderColor: "#16A34A" },
   badgeDenied: { backgroundColor: "#FEE2E2", borderWidth: 1, borderColor: "#DC2626" },
   badgeText: { fontSize: 12, fontWeight: "800", color: "#111827", letterSpacing: 1 },
+
+  resetButton: {
+    backgroundColor: "#0a7ea4",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  resetButtonText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
+  },
 
   enableButton: {
     backgroundColor: "#111827",
