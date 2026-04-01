@@ -45,6 +45,29 @@ export const STORAGE_KEY_LAST_BACKGROUND_CHECK = "conway_last_background_check";
 // Low battery threshold for background alert
 const LOW_BATTERY_THRESHOLD = 30;
 
+/** Contextual message — tuned thresholds: low ≤0.15%/min, medium 0.15–0.6%/min */
+function contextMessage(level: number, drainRatePerMin: number | null): string {
+  if (level > 50) return "Looking good";
+  const isLowDrain = drainRatePerMin !== null && drainRatePerMin <= 0.15;
+  const isMedDrain = drainRatePerMin !== null && drainRatePerMin > 0.15 && drainRatePerMin <= 0.6;
+  if (level > 30) {
+    if (isLowDrain) return "Your drain rate is nice and low — plenty of time";
+    if (isMedDrain) return "Still a comfortable amount of battery left";
+    return "A good time to start thinking about a charger";
+  }
+  if (level > 20) {
+    if (isLowDrain) return "Drain rate is slow — no rush, but worth keeping an eye out";
+    if (isMedDrain) return "Getting lower — worth keeping an eye out for a charger";
+    return "Now is a great time to find a charger";
+  }
+  if (level > 10) {
+    if (isLowDrain) return "Battery is low, but your drain rate is low too — you have time";
+    return "Battery is getting low — a charger nearby would be helpful";
+  }
+  if (isLowDrain) return "Battery is low but so is your drain rate — you have time to find a charge";
+  return "Battery is very low — plugging in soon would be a good move";
+}
+
 // Warning thresholds in minutes remaining (must match in-app hook)
 const DISCHARGE_WARNINGS_MIN = [20, 15, 10, 7, 5, 2];
 
@@ -160,24 +183,25 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
             let bgBody: string;
             const levelStr = `${estimatedLevel.toFixed(0)}%`;
             const rateStr = `Drain rate: ${drainRatePerMin.toFixed(2)}%/min.`;
+            const ctxMsg = ` ${contextMessage(Math.round(estimatedLevel), drainRatePerMin)}.`;
             if (threshold <= 2) {
               bgTitle = "🔋 2 Minutes Remaining";
               bgBody = `Plug in now and you'll be back in action fast. (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else if (threshold <= 5) {
               bgTitle = "🔋 5 Minutes Left — Let's Get You Charged";
-              bgBody = `You have about ${threshold} minutes left. A quick plug-in now and you'll be back to 100%. (${levelStr}) ${rateStr}${lowPowerTip}`;
+              bgBody = `You have about ${threshold} minutes left. A quick plug-in now and you'll be back to 100%.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else if (threshold <= 7) {
               bgTitle = `⚡ ${threshold} Minutes Remaining — You're Doing Great`;
-              bgBody = `Still ${threshold} minutes to go. Time to plug in and keep the momentum going. (${levelStr}) ${rateStr}${lowPowerTip}`;
+              bgBody = `Still ${threshold} minutes to go. Time to plug in and keep the momentum going.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else if (threshold <= 10) {
               bgTitle = `⚡ ${threshold} Minutes to Go`;
-              bgBody = `A quick charge now will keep you going strong. (${levelStr}) ${rateStr}${lowPowerTip}`;
+              bgBody = `A quick charge now will keep you going strong.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else if (threshold <= 15) {
               bgTitle = `👍 About ${threshold} Minutes Remaining`;
-              bgBody = `You've still got time. Now's a great moment to find a charger. (${levelStr}) ${rateStr}${lowPowerTip}`;
+              bgBody = `You've still got time. Now's a great moment to find a charger.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
             } else {
               bgTitle = `✨ Great News — ${threshold} Minutes Left`;
-              bgBody = `Your battery is starting to get low, but you have plenty of time. Open Power Monitor to see how to extend your time. (${levelStr}) ${rateStr}${lowPowerTip}`;
+              bgBody = `Your battery is starting to get low, but you have plenty of time.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
             }
             await Notifications.scheduleNotificationAsync({
               content: {

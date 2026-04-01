@@ -51,39 +51,42 @@ function formatTime(minutes: number | null): string {
 }
 
 /**
- * Returns a short, positive one-liner based on battery level and drain rate.
- * Shown between the battery ring and the minutes-remaining display.
+ * Discharge contextual message. Thresholds tuned to typical iPhone usage:
+ * low ≤0.15%/min, medium 0.15–0.6%/min, high >0.6%/min.
  */
 function getContextMessage(level: number, drainRatePerMin: number | null): string {
-  // Charging states are handled separately; this is discharge-only
   if (level > 50) return "Looking good";
-
-  const isLowDrain = drainRatePerMin !== null && drainRatePerMin <= 0.2;
-  const isMedDrain = drainRatePerMin !== null && drainRatePerMin > 0.2 && drainRatePerMin <= 0.5;
-
+  const isLowDrain = drainRatePerMin !== null && drainRatePerMin <= 0.15;
+  const isMedDrain = drainRatePerMin !== null && drainRatePerMin > 0.15 && drainRatePerMin <= 0.6;
   if (level > 30) {
-    // 31–50%
     if (isLowDrain) return "You have plenty of time — your drain rate is nice and low";
     if (isMedDrain) return "Still a comfortable amount of battery left";
     return "A good time to start thinking about a charger";
   }
-
   if (level > 20) {
-    // 21–30%
     if (isLowDrain) return "Battery is getting lower, but your drain rate is slow — no rush";
     if (isMedDrain) return "Getting lower — worth keeping an eye out for a charger";
     return "Now is a great time to find a charger";
   }
-
   if (level > 10) {
-    // 11–20%
     if (isLowDrain) return "Battery is low, but your drain rate is low too — you have time to find a charge";
     return "Battery is getting low — a charger nearby would be helpful";
   }
-
-  // 10% and below
   if (isLowDrain) return "No worries — battery is low but so is your drain rate, you have time to find a charge";
   return "Battery is very low — plugging in soon would be a good move";
+}
+
+/** Charging contextual message based on current level. */
+function getChargingMessage(level: number, chargeRatePerMin: number | null): string {
+  if (level >= 100) return "Fully charged — great time to unplug and go";
+  if (level >= 80) return "Almost there — nearly fully charged";
+  if (level >= 60) return "Charging nicely — you\'ll be back to full soon";
+  if (level >= 40) {
+    if (chargeRatePerMin !== null && chargeRatePerMin >= 1.0) return "Fast charging — you\'ll be good to go in no time";
+    return "On your way back up — good progress";
+  }
+  if (level >= 20) return "On your way back up — keep it plugged in a little longer";
+  return "Starting to charge — every minute plugged in helps";
 }
 
 export default function HomeScreen() {
@@ -226,9 +229,13 @@ export default function HomeScreen() {
         </View>
 
         {/* Contextual positive status message */}
-        {!battery.isCalculating && !isCharging && battery.mode === "discharging" && (
+        {!battery.isCalculating && (
           <Text style={styles.contextMessage}>
-            {getContextMessage(battery.level, battery.drainRatePerMin)}
+            {isCharging
+              ? getChargingMessage(battery.level, battery.chargeRatePerMin)
+              : battery.mode === "discharging"
+              ? getContextMessage(battery.level, battery.drainRatePerMin)
+              : null}
           </Text>
         )}
 

@@ -113,6 +113,32 @@ function buildMilestones(
   });
 }
 
+/**
+ * Shared contextual message logic (mirrors getContextMessage in index.tsx).
+ * Thresholds tuned to typical iPhone usage: low ≤0.15%/min, medium 0.15–0.6%/min, high >0.6%/min.
+ */
+function contextMessage(level: number, drainRatePerMin: number | null): string {
+  if (level > 50) return "Looking good";
+  const isLowDrain = drainRatePerMin !== null && drainRatePerMin <= 0.15;
+  const isMedDrain = drainRatePerMin !== null && drainRatePerMin > 0.15 && drainRatePerMin <= 0.6;
+  if (level > 30) {
+    if (isLowDrain) return "Your drain rate is nice and low — plenty of time";
+    if (isMedDrain) return "Still a comfortable amount of battery left";
+    return "A good time to start thinking about a charger";
+  }
+  if (level > 20) {
+    if (isLowDrain) return "Drain rate is slow — no rush, but worth keeping an eye out";
+    if (isMedDrain) return "Getting lower — worth keeping an eye out for a charger";
+    return "Now is a great time to find a charger";
+  }
+  if (level > 10) {
+    if (isLowDrain) return "Battery is low, but your drain rate is low too — you have time";
+    return "Battery is getting low — a charger nearby would be helpful";
+  }
+  if (isLowDrain) return "Battery is low but so is your drain rate — you have time to find a charge";
+  return "Battery is very low — plugging in soon would be a good move";
+}
+
 async function requestNotificationPermission(): Promise<boolean> {
   if (Platform.OS === "web") return false;
   const { status: existing } = await Notifications.getPermissionsAsync();
@@ -121,8 +147,9 @@ async function requestNotificationPermission(): Promise<boolean> {
   return status === "granted";
 }
 
-async function sendWarningNotification(minutesLeft: number, drainRatePerMin: number | null) {
+async function sendWarningNotification(minutesLeft: number, drainRatePerMin: number | null, levelPct?: number) {
   const rateStr = drainRatePerMin ? ` Drain rate: ${drainRatePerMin.toFixed(2)}%/min.` : "";
+  const ctxMsg = levelPct !== undefined ? ` ${contextMessage(levelPct, drainRatePerMin)}.` : "";
   let title: string;
   let body: string;
   if (minutesLeft <= 2) {
@@ -130,19 +157,19 @@ async function sendWarningNotification(minutesLeft: number, drainRatePerMin: num
     body = `Plug in now and you'll be back in action fast.${rateStr}`;
   } else if (minutesLeft <= 5) {
     title = "🔋 5 Minutes Left — Let's Get You Charged";
-    body = `You have about ${minutesLeft} minutes left. A quick plug-in now and you'll be back to 100%.${rateStr}`;
+    body = `You have about ${minutesLeft} minutes left. A quick plug-in now and you'll be back to 100%.${ctxMsg}${rateStr}`;
   } else if (minutesLeft <= 7) {
     title = `⚡ ${minutesLeft} Minutes Remaining — You're Doing Great`;
-    body = `Still ${minutesLeft} minutes to go. Time to plug in and keep the momentum going.${rateStr}`;
+    body = `Still ${minutesLeft} minutes to go. Time to plug in and keep the momentum going.${ctxMsg}${rateStr}`;
   } else if (minutesLeft <= 10) {
     title = `⚡ ${minutesLeft} Minutes to Go`;
-    body = `A quick charge now will keep you going strong. Open Power Monitor to track your progress.${rateStr}`;
+    body = `A quick charge now will keep you going strong.${ctxMsg}${rateStr}`;
   } else if (minutesLeft <= 15) {
     title = `👍 About ${minutesLeft} Minutes Remaining`;
-    body = `You've still got time. Now's a great moment to find a charger and stay ahead of the curve.${rateStr}`;
+    body = `You've still got time. Now's a great moment to find a charger.${ctxMsg}${rateStr}`;
   } else {
     title = `✨ Great News — ${minutesLeft} Minutes Left`;
-    body = `Your battery is starting to get low, but you have plenty of time. Open Power Monitor to see how to extend your time.${rateStr}`;
+    body = `Your battery is starting to get low, but you have plenty of time.${ctxMsg}${rateStr}`;
   }
   await Notifications.scheduleNotificationAsync({
     content: { title, body, sound: "battery-alert.wav" },
@@ -304,7 +331,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
           for (const threshold of DISCHARGE_WARNINGS) {
             if (minutesRemaining <= threshold && !firedWarningsRef.current.has(threshold)) {
               firedWarningsRef.current.add(threshold);
-              sendWarningNotification(threshold, drainRate);
+              sendWarningNotification(threshold, drainRate, levelPct);
               activeWarning = threshold;
               break;
             }

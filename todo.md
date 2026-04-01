@@ -121,3 +121,6 @@
 - [x] Remove all exclamation points from battery warning messages
 - [x] Drain rate spike detection — detect when drain rate jumps significantly and show dismissible card suggesting user check Settings → Battery for power-hungry apps
 - [x] Add contextual one-line positive message between battery ring and minutes remaining on dashboard, based on battery level and drain rate
+- [x] Include contextual one-liner in push notification bodies (foreground + background)
+- [x] Add charging-state message between battery ring and time display ("On your way back up", "Charging nicely", etc.)
+- [x] Tune drain rate thresholds: low ≤0.15%/min, medium 0.15–0.6%/min, high >0.6%/min (typical iPhone usage)
