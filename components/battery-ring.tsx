@@ -14,22 +14,22 @@ const CX = SIZE / 2;
 const CY = SIZE / 2;
 const COLOR_TRACK = "#E5E7EB";
 
-// Gradient color zones — 15-point wide blends centered on each boundary:
-//  red    (#DC2626): 0–12.5% solid
-//  blend  12.5–27.5%: red → orange  (centered on 20%)
-//  orange (#EA580C): 27.5–42.5% solid
-//  blend  42.5–57.5%: orange → yellow  (centered on 50%)
-//  yellow (#FFE135): 57.5–67.5% solid
-//  blend  67.5–82.5%: yellow → green  (centered on 75%)
-//  green  (#16A34A): 82.5–100% solid
+// Gradient color zones — 7.5-point wide blends centered on each boundary:
+//  red    (#DC2626): 0–16.5% solid
+//  blend  16.5–23.5%: red → orange  (centered on 20%)
+//  orange (#EA580C): 23.5–46.5% solid
+//  blend  46.5–53.5%: orange → yellow  (centered on 50%)
+//  yellow (#FFE135): 53.5–71.5% solid
+//  blend  71.5–78.5%: yellow → green  (centered on 75%)
+//  green  (#16A34A): 78.5–100% solid
 const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
   { pct: 0,    r: 220, g: 38,  b: 38  },
-  { pct: 12.5, r: 220, g: 38,  b: 38  },
-  { pct: 27.5, r: 234, g: 88,  b: 12  },
-  { pct: 42.5, r: 234, g: 88,  b: 12  },
-  { pct: 57.5, r: 255, g: 225, b: 53  },
-  { pct: 67.5, r: 255, g: 225, b: 53  },
-  { pct: 82.5, r: 22,  g: 163, b: 74  },
+  { pct: 16.5, r: 220, g: 38,  b: 38  },
+  { pct: 23.5, r: 234, g: 88,  b: 12  },
+  { pct: 46.5, r: 234, g: 88,  b: 12  },
+  { pct: 53.5, r: 255, g: 225, b: 53  },
+  { pct: 71.5, r: 255, g: 225, b: 53  },
+  { pct: 78.5, r: 22,  g: 163, b: 74  },
   { pct: 100,  r: 22,  g: 163, b: 74  },
 ];
 
