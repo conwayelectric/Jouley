@@ -14,52 +14,61 @@ const CX = SIZE / 2;
 const CY = SIZE / 2;
 const COLOR_TRACK = "#E5E7EB";
 
-// Gradient color zones — 7.5-point wide blends centered on each boundary:
-//  red    (#DC2626): 0–16.5% solid
-//  blend  16.5–23.5%: red → orange  (centered on 20%)
-//  orange (#EA580C): 23.5–46.5% solid
-//  blend  46.5–53.5%: orange → yellow  (centered on 50%)
-//  yellow (#FFE135): 53.5–71.5% solid
-//  blend  71.5–78.5%: yellow → green  (centered on 75%)
-//  green  (#16A34A): 78.5–100% solid
-const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
-  { pct: 0,    r: 220, g: 38,  b: 38  },
-  { pct: 16.5, r: 220, g: 38,  b: 38  },
-  { pct: 23.5, r: 234, g: 88,  b: 12  },
-  { pct: 46.5, r: 234, g: 88,  b: 12  },
-  { pct: 53.5, r: 255, g: 225, b: 53  },
-  { pct: 71.5, r: 255, g: 225, b: 53  },
-  { pct: 78.5, r: 22,  g: 163, b: 74  },
-  { pct: 100,  r: 22,  g: 163, b: 74  },
-];
+// Colour zone definitions: each zone has a solid colour and spans [startPct, endPct].
+// Boundaries are shared — the end of one zone is the start of the next.
+// At each boundary we place a radial linearGradient whose axis runs from the
+// ring centre outward through the boundary angle, so the colour transition line
+// is exactly perpendicular to the arc stroke.
+const ZONE_COLORS = {
+  red:    { r: 220, g: 38,  b: 38  },  // #DC2626
+  orange: { r: 234, g: 88,  b: 12  },  // #EA580C
+  yellow: { r: 255, g: 225, b: 53  },  // #FFE135
+  green:  { r: 22,  g: 163, b: 74  },  // #16A34A
+};
 
-function interpolateColor(pct: number): { r: number; g: number; b: number } {
-  const stops = GRADIENT_STOPS;
-  let lo = stops[0];
-  let hi = stops[stops.length - 1];
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (pct >= stops[i].pct && pct <= stops[i + 1].pct) {
-      lo = stops[i];
-      hi = stops[i + 1];
-      break;
-    }
-  }
-  const span = hi.pct - lo.pct;
-  const t = span === 0 ? 0 : (pct - lo.pct) / span;
-  return {
-    r: Math.round(lo.r + t * (hi.r - lo.r)),
-    g: Math.round(lo.g + t * (hi.g - lo.g)),
-    b: Math.round(lo.b + t * (hi.b - lo.b)),
-  };
-}
+// Zone boundaries in % (must match the user-specified ranges)
+// red 0–20%, orange 20–50%, yellow 50–75%, green 75–100%
+// Each boundary has a 5-point blend zone centred on it so the transition is smooth.
+const BLEND = 5; // half-width of blend zone in %
+const ZONES: Array<{ startPct: number; endPct: number; fromColor: typeof ZONE_COLORS.red; toColor: typeof ZONE_COLORS.red; id: string }> = [
+  // Solid red
+  { startPct: 0,            endPct: 20 - BLEND,     fromColor: ZONE_COLORS.red,    toColor: ZONE_COLORS.red,    id: "red_solid" },
+  // Red → orange blend (centred on 20%)
+  { startPct: 20 - BLEND,   endPct: 20 + BLEND,     fromColor: ZONE_COLORS.red,    toColor: ZONE_COLORS.orange, id: "red_orange" },
+  // Solid orange
+  { startPct: 20 + BLEND,   endPct: 50 - BLEND,     fromColor: ZONE_COLORS.orange, toColor: ZONE_COLORS.orange, id: "orange_solid" },
+  // Orange → yellow blend (centred on 50%)
+  { startPct: 50 - BLEND,   endPct: 50 + BLEND,     fromColor: ZONE_COLORS.orange, toColor: ZONE_COLORS.yellow, id: "orange_yellow" },
+  // Solid yellow
+  { startPct: 50 + BLEND,   endPct: 75 - BLEND,     fromColor: ZONE_COLORS.yellow, toColor: ZONE_COLORS.yellow, id: "yellow_solid" },
+  // Yellow → green blend (centred on 75%)
+  { startPct: 75 - BLEND,   endPct: 75 + BLEND,     fromColor: ZONE_COLORS.yellow, toColor: ZONE_COLORS.green,  id: "yellow_green" },
+  // Solid green
+  { startPct: 75 + BLEND,   endPct: 100,            fromColor: ZONE_COLORS.green,  toColor: ZONE_COLORS.green,  id: "green_solid" },
+];
 
 function colorToString(c: { r: number; g: number; b: number }): string {
   return `rgb(${c.r},${c.g},${c.b})`;
 }
 
+function interpolateZoneColor(pct: number): { r: number; g: number; b: number } {
+  for (const zone of ZONES) {
+    if (pct >= zone.startPct && pct <= zone.endPct) {
+      const span = zone.endPct - zone.startPct;
+      const t = span === 0 ? 0 : (pct - zone.startPct) / span;
+      return {
+        r: Math.round(zone.fromColor.r + t * (zone.toColor.r - zone.fromColor.r)),
+        g: Math.round(zone.fromColor.g + t * (zone.toColor.g - zone.fromColor.g)),
+        b: Math.round(zone.fromColor.b + t * (zone.toColor.b - zone.fromColor.b)),
+      };
+    }
+  }
+  return ZONE_COLORS.green;
+}
+
 function getRingColorString(level: number, mode: BatteryMode): string {
-  if (mode === "full") return colorToString(interpolateColor(100));
-  return colorToString(interpolateColor(level));
+  if (mode === "full") return colorToString(ZONE_COLORS.green);
+  return colorToString(interpolateZoneColor(level));
 }
 
 function polarToXY(angleDeg: number, r: number): { x: number; y: number } {
@@ -67,7 +76,7 @@ function polarToXY(angleDeg: number, r: number): { x: number; y: number } {
   return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
 }
 
-// Single continuous arc path from startDeg to endDeg at radius r
+// Arc path from startDeg to endDeg
 function arcStrokePath(startDeg: number, endDeg: number, r: number): string {
   const s = polarToXY(startDeg, r);
   const e = polarToXY(endDeg, r);
@@ -75,53 +84,93 @@ function arcStrokePath(startDeg: number, endDeg: number, r: number): string {
   return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 1 ${e.x} ${e.y}`;
 }
 
-// Build SVG linearGradient stop offsets for a sub-range of the full 0–100% arc.
-// Returns an array of {offset, color} pairs mapped to the gradient stops that
-// fall within [startPct, endPct], so the gradient covers exactly that range.
-function buildGradientStops(
-  startPct: number,
-  endPct: number
-): Array<{ offset: string; color: string }> {
-  if (endPct <= startPct) return [];
-  const span = endPct - startPct;
-  const result: Array<{ offset: string; color: string }> = [];
-
-  // Always add a stop at the start
-  result.push({
-    offset: "0%",
-    color: colorToString(interpolateColor(startPct)),
-  });
-
-  // Add stops for any GRADIENT_STOPS that fall within the range
-  for (const stop of GRADIENT_STOPS) {
-    if (stop.pct > startPct && stop.pct < endPct) {
-      const offset = ((stop.pct - startPct) / span) * 100;
-      result.push({
-        offset: `${offset.toFixed(2)}%`,
-        color: colorToString({ r: stop.r, g: stop.g, b: stop.b }),
-      });
-    }
-  }
-
-  // Always add a stop at the end
-  result.push({
-    offset: "100%",
-    color: colorToString(interpolateColor(endPct)),
-  });
-
-  return result;
+/**
+ * Build a radial gradient axis for a blend zone.
+ * The gradient axis runs from the ring centre outward through the midpoint angle
+ * of the zone, so the colour boundary is perpendicular to the arc stroke.
+ * We extend the axis well past the ring edge so the gradient covers the full stroke.
+ */
+function radialGradientAxis(startDeg: number, endDeg: number): { x1: number; y1: number; x2: number; y2: number } {
+  const midDeg = (startDeg + endDeg) / 2;
+  const midRad = (midDeg * Math.PI) / 180;
+  // Axis: from centre outward past the outer edge of the stroke
+  const outerR = RADIUS + STROKE;
+  return {
+    x1: CX,
+    y1: CY,
+    x2: CX + outerR * Math.cos(midRad),
+    y2: CY + outerR * Math.sin(midRad),
+  };
 }
 
-// Compute the bounding box endpoints for a linearGradient that runs along the arc
-// from startDeg to endDeg. We use the midpoint angle direction for the gradient axis
-// so it flows roughly along the arc direction.
-function arcGradientEndpoints(
-  startDeg: number,
-  endDeg: number
-): { x1: number; y1: number; x2: number; y2: number } {
-  const s = polarToXY(startDeg, RADIUS);
-  const e = polarToXY(endDeg, RADIUS);
-  return { x1: s.x, y1: s.y, x2: e.x, y2: e.y };
+/**
+ * Render the coloured arc up to `endPct`, split into zones.
+ * Each zone uses its own linearGradient with a radial axis so transitions
+ * are perpendicular to the arc stroke.
+ */
+function renderArcZones(endPct: number): React.ReactNode {
+  if (endPct <= 0) return null;
+  const nodes: React.ReactNode[] = [];
+
+  for (const zone of ZONES) {
+    if (zone.startPct >= endPct) break;
+    const zoneTo = Math.min(zone.endPct, endPct);
+    const zoneFrom = zone.startPct;
+    if (zoneTo <= zoneFrom) continue;
+
+    const startDeg = START_DEG + ARC_DEG * (zoneFrom / 100);
+    const endDeg   = START_DEG + ARC_DEG * (zoneTo   / 100);
+    const isSolid  = zone.fromColor === zone.toColor;
+    const gradId   = `grad_${zone.id}`;
+
+    if (isSolid) {
+      // Solid zone — no gradient needed, just a single colour stroke
+      nodes.push(
+        <Path
+          key={zone.id}
+          d={arcStrokePath(startDeg, endDeg, RADIUS)}
+          stroke={colorToString(zone.fromColor)}
+          strokeWidth={STROKE}
+          strokeLinecap="butt"
+          fill="none"
+        />
+      );
+    } else {
+      // Blend zone — radial gradient axis through the midpoint angle
+      const axis = radialGradientAxis(startDeg, endDeg);
+      // Interpolate the actual start/end colours within this zone
+      // (handles partial zones when endPct cuts through a blend)
+      const t = (zoneTo - zoneFrom) / (zone.endPct - zone.startPct);
+      const endColor = {
+        r: Math.round(zone.fromColor.r + t * (zone.toColor.r - zone.fromColor.r)),
+        g: Math.round(zone.fromColor.g + t * (zone.toColor.g - zone.fromColor.g)),
+        b: Math.round(zone.fromColor.b + t * (zone.toColor.b - zone.fromColor.b)),
+      };
+      nodes.push(
+        <React.Fragment key={zone.id}>
+          <Defs>
+            <LinearGradient
+              id={gradId}
+              x1={axis.x1} y1={axis.y1}
+              x2={axis.x2} y2={axis.y2}
+              gradientUnits="userSpaceOnUse"
+            >
+              <Stop offset="0%" stopColor={colorToString(zone.fromColor)} stopOpacity="1" />
+              <Stop offset="100%" stopColor={colorToString(endColor)} stopOpacity="1" />
+            </LinearGradient>
+          </Defs>
+          <Path
+            d={arcStrokePath(startDeg, endDeg, RADIUS)}
+            stroke={`url(#${gradId})`}
+            strokeWidth={STROKE}
+            strokeLinecap="butt"
+            fill="none"
+          />
+        </React.Fragment>
+      );
+    }
+  }
+  return nodes;
 }
 
 interface BatteryRingProps {
@@ -137,7 +186,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const fullPulse = useRef(new Animated.Value(1)).current;
   const [sweepProgress, setSweepProgress] = useState(0);
 
-  // Charging sweep: sweepProgress 0→1 controls how much of the 20-point window is revealed
+  // Charging sweep animation
   useEffect(() => {
     if (mode === "charging") {
       const listener = sweepAnim.addListener(({ value }) => setSweepProgress(value));
@@ -168,7 +217,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(fullPulse, { toValue: 0.55, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(fullPulse, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(fullPulse, { toValue: 1,    duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       );
       pulse.start();
@@ -184,7 +233,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(criticalOpacity, { toValue: 0.35, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(criticalOpacity, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(criticalOpacity, { toValue: 1,    duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       );
       pulse.start();
@@ -198,28 +247,13 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
   const isCharging = mode === "charging";
   const ringColor = getRingColorString(level, mode);
 
-  // Sweep window: the 20-point range below current level that animates during charging
+  // Charging sweep: 20-point window that animates
   const SWEEP_WINDOW = 20;
   const windowStart = Math.max(0, effectiveLevel - SWEEP_WINDOW);
-
-  // sweepTip moves from windowStart → windowEnd as sweepProgress goes 0 → 1
   const sweepTip = windowStart + sweepProgress * (effectiveLevel - windowStart);
 
-  // Arc degree positions
+  // Solid portion ends at windowStart when charging (sweep handles the rest)
   const solidEndPct = isCharging ? windowStart : effectiveLevel;
-  const solidStartDeg = START_DEG;
-  const solidEndDeg = START_DEG + ARC_DEG * (solidEndPct / 100);
-
-  const animStartDeg = START_DEG + ARC_DEG * (windowStart / 100);
-  const animEndDeg = START_DEG + ARC_DEG * (sweepTip / 100);
-
-  // Gradient endpoints for each arc
-  const solidGrad = arcGradientEndpoints(solidStartDeg, solidEndDeg);
-  const animGrad = arcGradientEndpoints(animStartDeg, animEndDeg);
-
-  // Gradient stops for each arc
-  const solidStops = buildGradientStops(0, solidEndPct);
-  const animStops = buildGradientStops(windowStart, sweepTip);
 
   // Tick marks
   const tickPercents = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100];
@@ -230,36 +264,8 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
     <View style={styles.container}>
       <Animated.View style={[styles.svgWrapper, { opacity: mode === "full" ? fullPulse : criticalOpacity }]}>
         <Svg width={SIZE} height={SIZE}>
-          <Defs>
-            {/* Gradient for the solid (already-charged) arc */}
-            {solidStops.length >= 2 && (
-              <LinearGradient
-                id="solidGrad"
-                x1={solidGrad.x1} y1={solidGrad.y1}
-                x2={solidGrad.x2} y2={solidGrad.y2}
-                gradientUnits="userSpaceOnUse"
-              >
-                {solidStops.map((s, i) => (
-                  <Stop key={i} offset={s.offset} stopColor={s.color} stopOpacity="1" />
-                ))}
-              </LinearGradient>
-            )}
-            {/* Gradient for the animated charging sweep arc */}
-            {isCharging && animStops.length >= 2 && (
-              <LinearGradient
-                id="animGrad"
-                x1={animGrad.x1} y1={animGrad.y1}
-                x2={animGrad.x2} y2={animGrad.y2}
-                gradientUnits="userSpaceOnUse"
-              >
-                {animStops.map((s, i) => (
-                  <Stop key={i} offset={s.offset} stopColor={s.color} stopOpacity="1" />
-                ))}
-              </LinearGradient>
-            )}
-          </Defs>
 
-          {/* LAYER 1: Tick marks — drawn first, behind the arc ring */}
+          {/* LAYER 1: Tick marks — behind the arc ring */}
           {tickPercents.map((pct) => {
             const tickDeg = START_DEG + ARC_DEG * (pct / 100);
             const tickRad = (tickDeg * Math.PI) / 180;
@@ -274,7 +280,6 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             let lx = CX + labelR * Math.cos(tickRad);
             let ly = CY + labelR * Math.sin(tickRad);
 
-            // Push 75% label further inward to clear the tick
             if (pct === 75) {
               const inwardRad = tickRad + Math.PI;
               lx += Math.cos(inwardRad) * 8;
@@ -299,7 +304,7 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
                     fill={isActive ? "#555555" : "#AAAAAA"}
                     letterSpacing={0.5}
                   >
-                    {pct} %
+                    {pct} %
                   </SvgText>
                 )}
               </React.Fragment>
@@ -317,27 +322,12 @@ export function BatteryRing({ level, mode, isCalculating, isLowPowerMode }: Batt
             transform={`rotate(${START_DEG} ${CX} ${CY})`}
           />
 
-          {/* LAYER 3: Single continuous gradient arc — solid portion (0 to solidEndPct) */}
-          {solidStops.length >= 2 && solidEndPct > 0 && (
-            <Path
-              d={arcStrokePath(solidStartDeg, solidEndDeg, RADIUS)}
-              stroke="url(#solidGrad)"
-              strokeWidth={STROKE}
-              strokeLinecap="butt"
-              fill="none"
-            />
-          )}
+          {/* LAYER 3: Solid portion — zone-split arcs with radial gradient boundaries */}
+          {renderArcZones(solidEndPct)}
 
-          {/* LAYER 4 (charging only): Single continuous gradient arc — animated sweep portion */}
-          {isCharging && animStops.length >= 2 && sweepTip > windowStart && (
-            <Path
-              d={arcStrokePath(animStartDeg, animEndDeg, RADIUS)}
-              stroke="url(#animGrad)"
-              strokeWidth={STROKE}
-              strokeLinecap="butt"
-              fill="none"
-            />
-          )}
+          {/* LAYER 4 (charging only): Animated sweep portion */}
+          {isCharging && sweepTip > windowStart && renderArcZones(sweepTip)}
+
         </Svg>
       </Animated.View>
 
