@@ -95,10 +95,46 @@ export default function HomeScreen() {
   const [lowPowerDismissed, setLowPowerDismissed] = useState(false);
   const [slowChargerDismissed, setSlowChargerDismissed] = useState(false);
   const [drainSpikeDismissed, setDrainSpikeDismissed] = useState(false);
+  const [unplugDismissed, setUnplugDismissed] = useState(false);
+  const [fullChargeTime, setFullChargeTime] = useState<number | null>(null); // timestamp when battery first hit 100%
+  const [healthData, setHealthData] = useState<{ avgDrainRate: number; sessionCount: number } | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const soundEnabledRef = useRef(true);
   const soundPlayer = useAudioPlayer(fullyChargedSound);
   const soundFiredRef = useRef(false); // prevent repeat within same full session
+
+  // Load health data from session history
+  useEffect(() => {
+    import("@/lib/session-history").then(({ loadSessions }) => {
+      loadSessions().then((sessions) => {
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const recent = sessions.filter((s) => s.startTime >= sevenDaysAgo && s.avgDrainRatePerMin > 0);
+        if (recent.length >= 2) {
+          const avg = recent.reduce((sum, s) => sum + s.avgDrainRatePerMin, 0) / recent.length;
+          setHealthData({ avgDrainRate: avg, sessionCount: recent.length });
+        }
+      }).catch(() => {});
+    });
+  }, []);
+
+  // Track when battery reaches 100% (for unplug tip)
+  useEffect(() => {
+    if (battery.mode === "full" && fullChargeTime === null) {
+      setFullChargeTime(Date.now());
+    }
+    if (battery.mode !== "full") {
+      setFullChargeTime(null);
+      setUnplugDismissed(false);
+    }
+  }, [battery.mode, fullChargeTime]);
+
+  // Schedule good morning notification if battery is below 50%
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    import("@/lib/good-morning-notification").then(({ scheduleGoodMorningNotification }) => {
+      scheduleGoodMorningNotification(battery.level).catch(() => {});
+    });
+  }, []); // Run once on mount
 
   // Load persisted dismissals and sound preference on mount
   useEffect(() => {
@@ -162,6 +198,10 @@ export default function HomeScreen() {
     setDrainSpikeDismissed(true);
     // Session-only dismissal — no AsyncStorage persistence
   };
+  const dismissUnplug = () => setUnplugDismissed(true);
+
+  // How long has the battery been at 100%?
+  const minutesAtFull = fullChargeTime !== null ? Math.floor((Date.now() - fullChargeTime) / 60000) : 0;
 
   // Detect Low Power Mode
   useEffect(() => {
@@ -400,6 +440,61 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.suggestionDismiss}
               onPress={dismissSlowCharger}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.suggestionDismissText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Battery Health Estimate Card — shown when we have 7-day data */}
+        {healthData !== null && !isCharging && (
+          <View style={styles.healthCard}>
+            <Text style={styles.healthCardTitle}>7-DAY BATTERY HEALTH</Text>
+            <View style={styles.healthRow}>
+              <View style={styles.healthStat}>
+                <Text style={styles.healthStatValue}>{healthData.avgDrainRate.toFixed(2)}%</Text>
+                <Text style={styles.healthStatLabel}>AVG DRAIN / MIN</Text>
+              </View>
+              <View style={styles.healthDivider} />
+              <View style={styles.healthStat}>
+                <Text style={styles.healthStatValue}>{healthData.sessionCount}</Text>
+                <Text style={styles.healthStatLabel}>SESSIONS</Text>
+              </View>
+              <View style={styles.healthDivider} />
+              <View style={styles.healthStat}>
+                <Text style={[
+                  styles.healthStatValue,
+                  { color: healthData.avgDrainRate <= 0.15 ? "#16A34A" : healthData.avgDrainRate <= 0.6 ? "#D97706" : "#DC2626" }
+                ]}>
+                  {healthData.avgDrainRate <= 0.15 ? "Low" : healthData.avgDrainRate <= 0.6 ? "Medium" : "High"}
+                </Text>
+                <Text style={styles.healthStatLabel}>DRAIN TIER</Text>
+              </View>
+            </View>
+            <Text style={styles.healthNote}>
+              {healthData.avgDrainRate <= 0.15
+                ? "Your battery usage over the past week has been very efficient. Keep it up."
+                : healthData.avgDrainRate <= 0.6
+                ? "Your battery usage is typical for normal smartphone use."
+                : "Your drain rate has been higher than average this week. Check the Power Save Tips below for ways to extend your battery life."}
+            </Text>
+          </View>
+        )}
+
+        {/* Unplug Tip — shown when battery has been at 100% for 30+ minutes */}
+        {battery.mode === "full" && minutesAtFull >= 30 && !unplugDismissed && (
+          <View style={[styles.suggestionCard, styles.suggestionCardGreen]}>
+            <Text style={styles.suggestionIcon}>🔌</Text>
+            <View style={styles.suggestionText}>
+              <Text style={[styles.suggestionTitle, styles.suggestionTitleGreen]}>Good Time to Unplug</Text>
+              <Text style={[styles.suggestionBody, styles.suggestionBodyGreen]}>
+                Your battery has been at 100% for {minutesAtFull} minutes. Unplugging now is good for your battery's long-term health.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.suggestionDismiss}
+              onPress={dismissUnplug}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.suggestionDismissText}>✕</Text>
@@ -956,6 +1051,70 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
     letterSpacing: 1,
+  },
+
+  // Battery Health card
+  healthCard: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    padding: 18,
+    gap: 12,
+  },
+  healthCardTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 2,
+    color: "#9CA3AF",
+  },
+  healthRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+  },
+  healthStat: {
+    alignItems: "center",
+    flex: 1,
+    gap: 4,
+  },
+  healthStatValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111827",
+    letterSpacing: -0.5,
+  },
+  healthStatLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    color: "#9CA3AF",
+    textAlign: "center",
+  },
+  healthDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#E5E7EB",
+  },
+  healthNote: {
+    fontSize: 12,
+    color: "#6B7280",
+    lineHeight: 18,
+    fontWeight: "500",
+  },
+
+  // Green suggestion card (unplug tip)
+  suggestionCardGreen: {
+    backgroundColor: "#F0FDF4",
+    borderColor: "#86EFAC",
+  },
+  suggestionTitleGreen: {
+    color: "#166534",
+  },
+  suggestionBodyGreen: {
+    color: "#166534",
   },
 
   // Power Save Tips card

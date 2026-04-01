@@ -125,3 +125,9 @@
 - [x] Add charging-state message between battery ring and time display ("On your way back up", "Charging nicely", etc.)
 - [x] Tune drain rate thresholds: low ≤0.15%/min, medium 0.15–0.6%/min, high >0.6%/min (typical iPhone usage)
 - [x] Fix battery ring gradient: red 0–20%, orange 20–50%, yellow 50–75%, green 75–100%
+- [x] Onboarding walkthrough — shown once on first launch, explains ring colours, drain rate, contextual messages, and notifications
+- [x] Battery health estimate card — shows 7-day average drain rate and whether battery behaviour is normal
+- [x] Charging optimisation tip — suggest unplugging when phone has been at 100% for a while
+- [x] Weekly battery life chart on History screen — bar chart showing average battery life per day over last 7 days
+- [x] Good morning notification — friendly heads-up at 7am when battery starts the day below 50%
+- [ ] App Store description copy — positive-angle description ready for submission
