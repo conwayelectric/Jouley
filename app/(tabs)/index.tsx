@@ -50,6 +50,42 @@ function formatTime(minutes: number | null): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+/**
+ * Returns a short, positive one-liner based on battery level and drain rate.
+ * Shown between the battery ring and the minutes-remaining display.
+ */
+function getContextMessage(level: number, drainRatePerMin: number | null): string {
+  // Charging states are handled separately; this is discharge-only
+  if (level > 50) return "Looking good";
+
+  const isLowDrain = drainRatePerMin !== null && drainRatePerMin <= 0.2;
+  const isMedDrain = drainRatePerMin !== null && drainRatePerMin > 0.2 && drainRatePerMin <= 0.5;
+
+  if (level > 30) {
+    // 31–50%
+    if (isLowDrain) return "You have plenty of time — your drain rate is nice and low";
+    if (isMedDrain) return "Still a comfortable amount of battery left";
+    return "A good time to start thinking about a charger";
+  }
+
+  if (level > 20) {
+    // 21–30%
+    if (isLowDrain) return "Battery is getting lower, but your drain rate is slow — no rush";
+    if (isMedDrain) return "Getting lower — worth keeping an eye out for a charger";
+    return "Now is a great time to find a charger";
+  }
+
+  if (level > 10) {
+    // 11–20%
+    if (isLowDrain) return "Battery is low, but your drain rate is low too — you have time to find a charge";
+    return "Battery is getting low — a charger nearby would be helpful";
+  }
+
+  // 10% and below
+  if (isLowDrain) return "No worries — battery is low but so is your drain rate, you have time to find a charge";
+  return "Battery is very low — plugging in soon would be a good move";
+}
+
 export default function HomeScreen() {
   const battery = useBatteryMonitor();
   const [isLowPowerMode, setIsLowPowerMode] = useState(false);
@@ -188,6 +224,13 @@ export default function HomeScreen() {
             isLowPowerMode={isLowPowerMode}
           />
         </View>
+
+        {/* Contextual positive status message */}
+        {!battery.isCalculating && !isCharging && battery.mode === "discharging" && (
+          <Text style={styles.contextMessage}>
+            {getContextMessage(battery.level, battery.drainRatePerMin)}
+          </Text>
+        )}
 
         {/* Time Remaining / Time to Full Card */}
         <View style={styles.timeCard}>
@@ -526,6 +569,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 28,
+  },
+  contextMessage: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#374151",
+    textAlign: "center",
+    marginHorizontal: 24,
+    marginBottom: 6,
+    lineHeight: 20,
   },
 
   // Time card

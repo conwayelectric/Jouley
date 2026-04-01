@@ -120,3 +120,4 @@
 - [x] Rewrite all battery warning messages with positive, encouraging tone (push notifications, in-app banner, info cards, suggestion cards)
 - [x] Remove all exclamation points from battery warning messages
 - [x] Drain rate spike detection — detect when drain rate jumps significantly and show dismissible card suggesting user check Settings → Battery for power-hungry apps
+- [x] Add contextual one-line positive message between battery ring and minutes remaining on dashboard, based on battery level and drain rate
