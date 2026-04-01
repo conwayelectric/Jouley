@@ -131,3 +131,5 @@
 - [x] Weekly battery life chart on History screen — bar chart showing average battery life per day over last 7 days
 - [x] Good morning notification — friendly heads-up at 7am when battery starts the day below 50%
 - [ ] App Store description copy — positive-angle description ready for submission
+- [x] Replace slide onboarding with overlay walkthrough — opens directly to dashboard, tooltips highlight each feature in context with Next button
+- [x] Fix percentage ranges in walkthrough to be inverted (100–75% green, 75–50% yellow, 50–20% orange, 20–0% red)

@@ -26,7 +26,7 @@ import {
 import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
-import { OnboardingWalkthrough, STORAGE_KEY_ONBOARDING_DONE } from "@/components/onboarding-walkthrough";
+import { STORAGE_KEY_ONBOARDING_DONE } from "@/components/onboarding-overlay";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -131,17 +131,6 @@ export default function RootLayout() {
 
   // Show nothing until we know onboarding state (avoids flash)
   if (onboardingDone === null) return null;
-
-  // Show onboarding on first launch
-  if (!onboardingDone && Platform.OS !== "web") {
-    return (
-      <ThemeProvider>
-        <SafeAreaProvider initialMetrics={providerInitialMetrics}>
-          <OnboardingWalkthrough onDone={() => setOnboardingDone(true)} />
-        </SafeAreaProvider>
-      </ThemeProvider>
-    );
-  }
 
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>

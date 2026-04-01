@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { OnboardingOverlay, STORAGE_KEY_ONBOARDING_DONE } from "@/components/onboarding-overlay";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAudioPlayer, setAudioModeAsync } from "expo-audio";
 import { STORAGE_KEY_SOUND_ENABLED } from "@/lib/background-battery-task";
@@ -91,8 +92,17 @@ function getChargingMessage(level: number, chargeRatePerMin: number | null): str
 
 export default function HomeScreen() {
   const battery = useBatteryMonitor();
+  const [showOverlay, setShowOverlay] = useState(false);
   const [isLowPowerMode, setIsLowPowerMode] = useState(false);
   const [lowPowerDismissed, setLowPowerDismissed] = useState(false);
+
+  // Check if onboarding overlay should be shown
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    AsyncStorage.getItem(STORAGE_KEY_ONBOARDING_DONE).then((val) => {
+      if (val !== "true") setShowOverlay(true);
+    }).catch(() => {});
+  }, []);
   const [slowChargerDismissed, setSlowChargerDismissed] = useState(false);
   const [drainSpikeDismissed, setDrainSpikeDismissed] = useState(false);
   const [unplugDismissed, setUnplugDismissed] = useState(false);
@@ -618,6 +628,10 @@ export default function HomeScreen() {
           <Text style={styles.footerText}>CONWAY ELECTRIC · STAY CHARGED</Text>
         </View>
       </ScrollView>
+      {/* Onboarding overlay — shown on first launch, sits above the dashboard */}
+      {showOverlay && (
+        <OnboardingOverlay onDone={() => setShowOverlay(false)} />
+      )}
     </SafeAreaView>
   );
 }
