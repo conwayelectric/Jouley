@@ -308,7 +308,7 @@ export default function SettingsScreen() {
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>Privacy Policy</Text>
               <Text style={styles.rowDesc}>
-                Read how Conway Electric handles your data.
+                Read how Battery Buddy handles your data.
               </Text>
             </View>
             <Text style={styles.chevron}>›</Text>
@@ -317,7 +317,7 @@ export default function SettingsScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>CONWAY ELECTRIC · STAY CHARGED</Text>
+          <Text style={styles.footerText}>BATTERY BUDDY · STAY CHARGED</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

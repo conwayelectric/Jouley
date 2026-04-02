@@ -28,8 +28,8 @@ const SLIDES: OnboardingSlide[] = [
   {
     id: "welcome",
     emoji: "⚡",
-    title: "Welcome to CE Power Monitor",
-    body: "Conway Electric Power Monitor keeps you informed about your battery in a calm, positive way — so you're never caught off guard.",
+    title: "Welcome to Battery Buddy",
+    body: "Battery Buddy keeps you informed about your battery in a calm, positive way — so you're never caught off guard.",
   },
   {
     id: "ring",
@@ -79,7 +79,7 @@ const SLIDES: OnboardingSlide[] = [
     id: "ready",
     emoji: "✅",
     title: "You're All Set",
-    body: "That's everything you need to know. Enjoy using CE Power Monitor — and remember, your battery is in good hands.",
+    body: "That's everything you need to know. Enjoy using Battery Buddy — and remember, your battery is in good hands.",
   },
 ];
 
@@ -125,7 +125,7 @@ export function OnboardingWalkthrough({ onDone }: OnboardingWalkthroughProps) {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.brandName}>CONWAY ELECTRIC</Text>
+        <Text style={styles.brandName}>BATTERY BUDDY</Text>
       </View>
 
       {/* Slides */}

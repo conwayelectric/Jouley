@@ -138,3 +138,4 @@
 - [x] Brighten onboarding overlay — lighter background, brighter buttons, warmer welcome message
 - [x] Rename app to "Battery Buddy" throughout
 - [x] Update thermal state labels to friendlier language (Cool, Warm, Running Hot, Very Hot) and soften descriptions
+- [x] Replace ALL remaining "Power Monitor" references with "Battery Buddy" across every file

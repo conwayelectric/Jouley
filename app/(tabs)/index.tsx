@@ -260,8 +260,8 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>CONWAY ELECTRIC</Text>
-            <Text style={styles.headerSubtitle}>POWER MONITOR · {headerSubtitle.toUpperCase()}</Text>
+            <Text style={styles.headerTitle}>BATTERY BUDDY</Text>
+            <Text style={styles.headerSubtitle}>{headerSubtitle.toUpperCase()}</Text>
           </View>
         </View>
 
@@ -566,7 +566,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.discountBody}>
-              Conway Electric offers premium smart charging power cords and advanced lighting. Save 15% off your next Conway Electric purchase with this discount code. Single-use code — valid for 30 days.
+              Conway Electric offers premium smart charging power cords and advanced lighting. Save 15% off your next purchase with this exclusive Battery Buddy discount code. Single-use code — valid for 30 days.
             </Text>
             <TouchableOpacity
               style={styles.shopNowBtn}
@@ -625,7 +625,7 @@ export default function HomeScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>CONWAY ELECTRIC · STAY CHARGED</Text>
+          <Text style={styles.footerText}>BATTERY BUDDY · STAY CHARGED</Text>
         </View>
       </ScrollView>
       {/* Onboarding overlay — shown on first launch, sits above the dashboard */}
