@@ -134,3 +134,4 @@
 - [x] Replace slide onboarding with overlay walkthrough — opens directly to dashboard, tooltips highlight each feature in context with Next button
 - [x] Fix percentage ranges in walkthrough to be inverted (100–75% green, 75–50% yellow, 50–20% orange, 20–0% red)
 - [x] Add Reset Walkthrough button to Settings screen so the overlay can be re-triggered on demand
+- [x] Fix onboarding overlay truncation — tooltip card and buttons cut off at bottom of screen, needs to always be fully visible

@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  ScrollView,
   Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -137,16 +138,24 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
   const isLast = step === STEPS.length - 1;
   const spotlight = current.spotlight;
 
+  // Estimated tooltip card height (title + body + dots + buttons + padding)
+  const TOOLTIP_HEIGHT = 260;
+  const SAFE_BOTTOM_MARGIN = 100; // tab bar + safe area
+  const maxTop = H - TOOLTIP_HEIGHT - SAFE_BOTTOM_MARGIN;
+
   // Build tooltip vertical position
   let tooltipTop: number;
   if (current.tooltipPosition === "top") {
     tooltipTop = H * 0.08;
   } else if (current.tooltipPosition === "bottom") {
     const spotBottom = spotlight ? spotlight.y + spotlight.h : H * 0.5;
-    tooltipTop = Math.min(spotBottom + 16, H * 0.72);
+    tooltipTop = spotBottom + 16;
   } else {
     tooltipTop = H * 0.35;
   }
+  // Clamp so the card never overflows the bottom of the screen
+  tooltipTop = Math.min(tooltipTop, maxTop);
+  tooltipTop = Math.max(tooltipTop, H * 0.06);
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]} pointerEvents="box-none">
@@ -200,7 +209,13 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
         </View>
 
         <Text style={styles.tooltipTitle}>{current.title}</Text>
-        <Text style={styles.tooltipBody}>{current.body}</Text>
+        <ScrollView
+          style={styles.bodyScroll}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <Text style={styles.tooltipBody}>{current.body}</Text>
+        </ScrollView>
 
         {/* Dot indicators */}
         <View style={styles.dotsRow}>
@@ -256,6 +271,11 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 20,
     gap: 10,
+    // Prevent the card from ever growing taller than ~60% of the screen
+    maxHeight: "60%",
+  },
+  bodyScroll: {
+    maxHeight: 120,
   },
   stepRow: {
     flexDirection: "row",
