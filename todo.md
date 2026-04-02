@@ -137,3 +137,4 @@
 - [x] Fix onboarding overlay truncation — tooltip card and buttons cut off at bottom of screen, needs to always be fully visible
 - [x] Brighten onboarding overlay — lighter background, brighter buttons, warmer welcome message
 - [x] Rename app to "Battery Buddy" throughout
+- [x] Update thermal state labels to friendlier language (Cool, Warm, Running Hot, Very Hot) and soften descriptions

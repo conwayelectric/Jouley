@@ -20,13 +20,13 @@ const ZONE_COLORS: Record<ThermalZone, string> = {
 const ZONE_LABELS: Record<ThermalZone, string> = {
   cool:     "COOL",
   warm:     "WARM",
-  hot:      "HOT",
-  critical: "CRITICAL",
+  hot:      "RUNNING HOT",
+  critical: "VERY HOT",
 };
 
 // Tick positions as fractions of the bar width (0–1)
 const TICKS = [0, 0.25, 0.5, 0.75, 1.0];
-const TICK_LABELS = ["C", "W", "H", "!", ""];
+const TICK_LABELS = ["C", "W", "H", "VH", ""];
 
 export function ThermalGauge({ value, zone, label }: ThermalGaugeProps) {
   const clampedValue = Math.max(0, Math.min(1, value));
@@ -116,9 +116,9 @@ export function ThermalGauge({ value, zone, label }: ThermalGaugeProps) {
       {/* Row 5: Zone description */}
       <Text style={[styles.zoneDescription, { color: activeColor }]}>
         {zone === "cool" && "Normal operating temperature — battery impact minimal"}
-        {zone === "warm" && "Elevated temperature — slight increase in drain rate"}
-        {zone === "hot" && "High load detected — battery draining faster than usual"}
-        {zone === "critical" && "Critical thermal load — consider closing background apps"}
+        {zone === "warm" && "Slightly warmer than usual — may drain a bit faster"}
+        {zone === "hot" && "Running warm from heavy use — battery draining faster"}
+        {zone === "critical" && "Very warm — closing background apps may help"}
       </Text>
     </View>
   );
