@@ -180,7 +180,7 @@ async function sendWarningNotification(minutesLeft: number, drainRatePerMin: num
 async function sendMilestoneNotification(percent: number) {
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: `${percent === 100 ? "🎉" : "⚡"} Conway Electric Power Monitor`,
+      title: `${percent === 100 ? "🎉" : "⚡"} Battery Buddy`,
       body: percent === 100 ? "Battery fully charged!" : `Battery has reached ${percent}% charge.`,
       sound: "battery-alert.wav",
     },

@@ -1,12 +1,9 @@
 /**
- * Onboarding Overlay Walkthrough
+ * Onboarding Overlay Walkthrough — Battery Friend
  *
- * Renders a semi-transparent dark overlay over the dashboard.
- * Each step highlights a specific area with a "spotlight" cutout and
- * shows a tooltip card with a description and Next/Done button.
- *
- * Steps are positioned relative to known dashboard layout regions.
- * Uses absolute positioning so the dashboard remains fully visible beneath.
+ * Renders a warm, bright overlay over the dashboard.
+ * Each step highlights a specific area with a spotlight cutout and
+ * shows a friendly tooltip card with a description and Next button.
  */
 import React, { useEffect, useRef } from "react";
 import {
@@ -17,7 +14,6 @@ import {
   Animated,
   Dimensions,
   ScrollView,
-  Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -25,12 +21,13 @@ export const STORAGE_KEY_ONBOARDING_DONE = "conway_onboarding_done";
 
 const { width: W, height: H } = Dimensions.get("window");
 
-// ─── Step definitions ──────────────────────────────────────────────────────────
-// Each step defines:
-//   spotlight: the rectangular region to "cut out" (highlight)
-//   tooltip:   where to position the tooltip card ("top" | "bottom" | "middle")
-//   title / body: the explanation text
+// ─── Brand colours ─────────────────────────────────────────────────────────────
+const BRAND_GREEN = "#16A34A";
+const BRAND_TEAL  = "#0891B2";
+const CARD_BG     = "#F0FDF4";   // very light green — warm and friendly
+const OVERLAY_BG  = "rgba(0,40,20,0.55)"; // softer, slightly green-tinted dark
 
+// ─── Step definitions ──────────────────────────────────────────────────────────
 interface Step {
   id: string;
   title: string;
@@ -39,19 +36,25 @@ interface Step {
   tooltipPosition: "top" | "bottom" | "middle";
 }
 
-// Positions are expressed as fractions of screen dimensions for responsiveness
 const STEPS: Step[] = [
   {
+    id: "welcome",
+    title: "Welcome to Battery Buddy",
+    body: "Hi there! Battery Buddy is here to keep you calm and informed about your battery — no stress, just friendly reminders and helpful tips. Let's take a quick tour so you know where everything is.",
+    spotlight: null,
+    tooltipPosition: "middle",
+  },
+  {
     id: "ring",
-    title: "Battery Ring",
-    body: "This ring shows your current battery level. The colour tells you where you stand:\n\n🟢 Green: 100 to 75%\n🟡 Yellow: 75 to 50%\n🟠 Orange: 50 to 20%\n🔴 Red: 20 to 0%",
+    title: "Your Battery Ring",
+    body: "This ring shows your current battery level at a glance. The colour tells you where you stand:\n\n🟢 Green: 100 to 75% — you are in great shape\n🟡 Yellow: 75 to 50% — still plenty of time\n🟠 Orange: 50 to 20% — worth thinking about a charger\n🔴 Red: 20 to 0% — time to plug in soon",
     spotlight: { x: W * 0.1, y: H * 0.12, w: W * 0.8, h: W * 0.8 },
     tooltipPosition: "bottom",
   },
   {
     id: "message",
-    title: "Status Message",
-    body: "This personalised message reflects both your battery level and how fast it is draining — so you always know how much time you actually have, not just what the percentage says.",
+    title: "Your Personal Status",
+    body: "This friendly message is tailored to both your battery level and how fast it is draining — so you always know how much time you actually have, not just what the percentage says.",
     spotlight: { x: W * 0.05, y: H * 0.52, w: W * 0.9, h: H * 0.06 },
     tooltipPosition: "bottom",
   },
@@ -64,7 +67,7 @@ const STEPS: Step[] = [
   },
   {
     id: "stats",
-    title: "Drain Rate Stats",
+    title: "Drain Rate",
     body: "These numbers show how fast your battery is draining right now. A low drain rate means you have more time than the percentage alone suggests — even at 15% you may have an hour left.",
     spotlight: { x: W * 0.05, y: H * 0.68, w: W * 0.9, h: H * 0.08 },
     tooltipPosition: "top",
@@ -72,14 +75,14 @@ const STEPS: Step[] = [
   {
     id: "notifications",
     title: "Friendly Reminders",
-    body: "You will receive gentle reminders at 20, 15, 10, 7, 5, and 2 minutes remaining. They are always worded positively so you have time to act without feeling stressed.",
+    body: "Battery Friend will send you gentle, positive reminders at 20, 15, 10, 7, 5, and 2 minutes remaining — always worded to help you feel in control, not stressed.",
     spotlight: null,
     tooltipPosition: "middle",
   },
   {
     id: "history",
     title: "Session History",
-    body: "Tap the History tab to see a log of your past discharge sessions and a 7-day chart showing your average drain rate per day. Great for spotting patterns in your usage.",
+    body: "Tap the History tab to see your past sessions and a 7-day chart of your average drain rate. Great for spotting patterns and understanding your battery habits over time.",
     spotlight: null,
     tooltipPosition: "middle",
   },
@@ -93,26 +96,16 @@ interface OnboardingOverlayProps {
 
 export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
   const [step, setStep] = React.useState(0);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim   = useRef(new Animated.Value(0)).current;
   const tooltipAnim = useRef(new Animated.Value(0)).current;
 
-  // Fade in on mount
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }).start();
   }, []);
 
-  // Animate tooltip on step change
   useEffect(() => {
     tooltipAnim.setValue(0);
-    Animated.timing(tooltipAnim, {
-      toValue: 1,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(tooltipAnim, { toValue: 1, duration: 240, useNativeDriver: true }).start();
   }, [step]);
 
   const handleNext = () => {
@@ -124,68 +117,51 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
   };
 
   const handleDone = async () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(async () => {
+    Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(async () => {
       await AsyncStorage.setItem(STORAGE_KEY_ONBOARDING_DONE, "true");
       onDone();
     });
   };
 
-  const current = STEPS[step];
-  const isLast = step === STEPS.length - 1;
+  const current  = STEPS[step];
+  const isLast   = step === STEPS.length - 1;
   const spotlight = current.spotlight;
 
-  // Estimated tooltip card height (title + body + dots + buttons + padding)
-  const TOOLTIP_HEIGHT = 260;
-  const SAFE_BOTTOM_MARGIN = 100; // tab bar + safe area
+  const TOOLTIP_HEIGHT    = 280;
+  const SAFE_BOTTOM_MARGIN = 110;
   const maxTop = H - TOOLTIP_HEIGHT - SAFE_BOTTOM_MARGIN;
 
-  // Build tooltip vertical position
   let tooltipTop: number;
   if (current.tooltipPosition === "top") {
     tooltipTop = H * 0.08;
   } else if (current.tooltipPosition === "bottom") {
     const spotBottom = spotlight ? spotlight.y + spotlight.h : H * 0.5;
-    tooltipTop = spotBottom + 16;
+    tooltipTop = spotBottom + 18;
   } else {
-    tooltipTop = H * 0.35;
+    tooltipTop = H * 0.3;
   }
-  // Clamp so the card never overflows the bottom of the screen
   tooltipTop = Math.min(tooltipTop, maxTop);
   tooltipTop = Math.max(tooltipTop, H * 0.06);
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]} pointerEvents="box-none">
-      {/* Dark overlay — rendered as 4 rectangles around the spotlight */}
+      {/* Overlay panels */}
       {spotlight ? (
         <>
-          {/* Top */}
           <View style={[styles.overlay, { top: 0, left: 0, right: 0, height: spotlight.y }]} />
-          {/* Bottom */}
           <View style={[styles.overlay, { top: spotlight.y + spotlight.h, left: 0, right: 0, bottom: 0 }]} />
-          {/* Left */}
           <View style={[styles.overlay, { top: spotlight.y, left: 0, width: spotlight.x, height: spotlight.h }]} />
-          {/* Right */}
           <View style={[styles.overlay, { top: spotlight.y, left: spotlight.x + spotlight.w, right: 0, height: spotlight.h }]} />
-          {/* Spotlight border */}
+          {/* Bright spotlight border */}
           <View
             style={[
               styles.spotlightBorder,
-              {
-                top: spotlight.y - 3,
-                left: spotlight.x - 3,
-                width: spotlight.w + 6,
-                height: spotlight.h + 6,
-              },
+              { top: spotlight.y - 4, left: spotlight.x - 4, width: spotlight.w + 8, height: spotlight.h + 8 },
             ]}
             pointerEvents="none"
           />
         </>
       ) : (
-        // Full overlay when no spotlight
         <View style={[styles.overlay, StyleSheet.absoluteFillObject]} />
       )}
 
@@ -196,35 +172,34 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
           {
             top: tooltipTop,
             opacity: tooltipAnim,
-            transform: [{ translateY: tooltipAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
+            transform: [{ translateY: tooltipAnim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
           },
         ]}
       >
-        {/* Step counter */}
+        {/* Header row */}
         <View style={styles.stepRow}>
-          <Text style={styles.stepCounter}>{step + 1} of {STEPS.length}</Text>
-          <TouchableOpacity onPress={handleDone} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.skipText}>Skip</Text>
+          <View style={styles.stepPill}>
+            <Text style={styles.stepCounter}>{step + 1} of {STEPS.length}</Text>
+          </View>
+          <TouchableOpacity onPress={handleDone} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.skipText}>Skip tour</Text>
           </TouchableOpacity>
         </View>
 
         <Text style={styles.tooltipTitle}>{current.title}</Text>
-        <ScrollView
-          style={styles.bodyScroll}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
+
+        <ScrollView style={styles.bodyScroll} showsVerticalScrollIndicator={false} bounces={false}>
           <Text style={styles.tooltipBody}>{current.body}</Text>
         </ScrollView>
 
-        {/* Dot indicators */}
+        {/* Progress dots */}
         <View style={styles.dotsRow}>
           {STEPS.map((_, i) => (
             <View key={i} style={[styles.dot, i === step && styles.dotActive]} />
           ))}
         </View>
 
-        {/* Navigation buttons */}
+        {/* Navigation */}
         <View style={styles.navRow}>
           {step > 0 && (
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep(step - 1)}>
@@ -232,10 +207,10 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.nextBtn, isLast && styles.nextBtnGreen]}
+            style={[styles.nextBtn, isLast && styles.nextBtnDone]}
             onPress={handleNext}
           >
-            <Text style={styles.nextBtnText}>{isLast ? "Got it" : "Next"}</Text>
+            <Text style={styles.nextBtnText}>{isLast ? "Let's go" : "Next"}</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -250,59 +225,66 @@ const styles = StyleSheet.create({
   },
   overlay: {
     position: "absolute",
-    backgroundColor: "rgba(0,0,0,0.72)",
+    backgroundColor: OVERLAY_BG,
   },
   spotlightBorder: {
     position: "absolute",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.35)",
-    borderRadius: 14,
+    borderWidth: 2.5,
+    borderColor: "#86EFAC", // bright green border around spotlight
+    borderRadius: 16,
   },
   tooltip: {
     position: "absolute",
-    left: 20,
-    right: 20,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
+    left: 18,
+    right: 18,
+    backgroundColor: CARD_BG,
+    borderRadius: 20,
     padding: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 20,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 18,
     gap: 10,
-    // Prevent the card from ever growing taller than ~60% of the screen
-    maxHeight: "60%",
+    maxHeight: "62%",
+    borderWidth: 1.5,
+    borderColor: "#BBF7D0", // soft green border on card
   },
   bodyScroll: {
-    maxHeight: 120,
+    maxHeight: 130,
   },
   stepRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  stepPill: {
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
   stepCounter: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9CA3AF",
-    letterSpacing: 1,
+    color: BRAND_GREEN,
+    letterSpacing: 0.5,
   },
   skipText: {
     fontSize: 13,
-    color: "#9CA3AF",
+    color: "#6B7280",
     fontWeight: "500",
   },
   tooltipTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "800",
-    color: "#111827",
+    color: "#064E3B",
     letterSpacing: -0.3,
-    lineHeight: 24,
+    lineHeight: 25,
   },
   tooltipBody: {
     fontSize: 14,
-    color: "#374151",
+    color: "#1F4E3D",
     lineHeight: 22,
     fontWeight: "400",
   },
@@ -315,11 +297,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#D1D5DB",
+    backgroundColor: "#BBF7D0",
   },
   dotActive: {
-    backgroundColor: "#111827",
-    width: 18,
+    backgroundColor: BRAND_GREEN,
+    width: 20,
+    borderRadius: 3,
   },
   navRow: {
     flexDirection: "row",
@@ -338,15 +321,15 @@ const styles = StyleSheet.create({
     color: "#6B7280",
   },
   nextBtn: {
-    backgroundColor: "#111827",
+    backgroundColor: BRAND_TEAL,
     paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 12,
-    minWidth: 100,
+    paddingVertical: 13,
+    borderRadius: 14,
+    minWidth: 110,
     alignItems: "center",
   },
-  nextBtnGreen: {
-    backgroundColor: "#16A34A",
+  nextBtnDone: {
+    backgroundColor: BRAND_GREEN,
   },
   nextBtnText: {
     fontSize: 15,

@@ -87,7 +87,7 @@ export default function SettingsScreen() {
     } else {
       Alert.alert(
         "Notifications Disabled",
-        "To receive battery warnings, please enable notifications for Conway Electric Power Monitor in your device Settings.",
+        "To receive battery reminders, please enable notifications for Battery Buddy in your device Settings.",
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -119,7 +119,7 @@ export default function SettingsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>SETTINGS</Text>
-          <Text style={styles.headerSubtitle}>CONWAY ELECTRIC POWER MONITOR</Text>
+          <Text style={styles.headerSubtitle}>BATTERY BUDDY</Text>
         </View>
         <View style={styles.divider} />
 

@@ -82,7 +82,7 @@ export default function RootLayout() {
       if (status !== "granted") {
         Alert.alert(
           "Enable Notifications",
-          "Conway Electric Power Monitor needs notification permission to warn you when your battery is running low. You can enable this in Settings.",
+          "Battery Buddy needs notification permission to send you friendly reminders when your battery is running low. You can enable this in Settings.",
           [{ text: "OK" }]
         );
       }

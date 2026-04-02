@@ -613,7 +613,7 @@ export default function HomeScreen() {
             const androidUrl = "https://play.google.com/store/apps/details?id=space.manus.battery.guardian"; // replace after publish
             const storeUrl = Platform.OS === "android" ? androidUrl : iosUrl;
             Share.share({
-              message: `I use the Conway Electric Power Monitor app so I always know how much time I have left in my battery. You can download it here: ${storeUrl}`,
+              message: `I use Battery Buddy so I always know how much time I have left in my battery. You can download it here: ${storeUrl}`,
               url: storeUrl, // iOS uses this for the native share sheet URL preview
             });
           }}
