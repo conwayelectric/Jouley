@@ -317,7 +317,7 @@ export default function SettingsScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>BATTERY BUDDY · STAY CHARGED</Text>
+          <Text style={styles.footerText}>CONWAY ELECTRIC · STAY CHARGED</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

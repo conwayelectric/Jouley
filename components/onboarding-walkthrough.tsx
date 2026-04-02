@@ -125,7 +125,7 @@ export function OnboardingWalkthrough({ onDone }: OnboardingWalkthroughProps) {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.brandName}>BATTERY BUDDY</Text>
+        <Text style={styles.brandName}>CONWAY ELECTRIC</Text>
       </View>
 
       {/* Slides */}
