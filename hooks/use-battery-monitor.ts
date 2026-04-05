@@ -4,6 +4,7 @@ import * as Battery from "expo-battery";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { saveSession } from "@/lib/session-history";
+import { recordSessionDrainRate } from "@/lib/health-history";
 import { estimateInitialDrainRate } from "@/hooks/use-thermal-state";
 import {
   STORAGE_KEY_LAST_LEVEL,
@@ -249,6 +250,10 @@ export function useBatteryMonitor(): BatteryMonitorState {
           const endTime = Date.now();
           const durationMs = endTime - sessionStartTimeRef.current;
           const rates = sessionDrainSamplesRef.current.filter((r) => r > 0);
+          const avgRate =
+            rates.length > 0
+              ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100) / 100
+              : 0;
           saveSession({
             id: `${endTime}`,
             startLevel: sessionStartLevelRef.current,
@@ -256,11 +261,9 @@ export function useBatteryMonitor(): BatteryMonitorState {
             startTime: sessionStartTimeRef.current,
             endTime,
             durationMinutes: Math.max(1, Math.round(durationMs / 60_000)),
-            avgDrainRatePerMin:
-              rates.length > 0
-                ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100) / 100
-                : 0,
+            avgDrainRatePerMin: avgRate,
           });
+          if (avgRate > 0) recordSessionDrainRate(avgRate).catch(() => {});
           sessionStartLevelRef.current = null;
           sessionStartTimeRef.current = null;
           sessionDrainSamplesRef.current = [];

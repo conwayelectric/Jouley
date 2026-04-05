@@ -184,6 +184,17 @@ export default function HomeScreen() {
     isLowPowerMode
   );
 
+  // Record thermal score to health history every 60 seconds
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const interval = setInterval(() => {
+      import("@/lib/health-history").then(({ recordThermalSample }) => {
+        recordThermalSample(thermal.score).catch(() => {});
+      });
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [thermal.score]);
+
   // Reset dismissals when mode changes (e.g. plug in / unplug) and clear storage
   const prevMode = useRef(battery.mode);
   useEffect(() => {

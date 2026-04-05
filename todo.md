@@ -142,3 +142,10 @@
 - [x] Update privacy policy URL to https://conwaygoods.com/pages/battery-buddy-privacy
 - [x] Fix charge milestone circles — isNext logic was inverted after array reverse, now correctly highlights the next milestone to reach
 - [x] Fix charge milestone circle fill overflow — separated into outer border ring and inner fill view with overflow:hidden
+- [x] Extend session history storage from 50 sessions to 90-day rolling log with daily aggregates
+- [x] Add daily thermal score logging alongside drain rate data
+- [x] Build smooth line chart component for drain rate trend (90-day, colors match battery ring gradient)
+- [x] Build smooth line chart component for thermal trend (colors match thermal gauge: cool/warm/hot/critical)
+- [x] Add battery health trend section to History tab with 30-day and 90-day views
+- [x] Add battery care tips info section below health chart (lithium-ion best practices)
+- [x] Add Conway Electric Extō USB-C smart charger info card in history/health section
