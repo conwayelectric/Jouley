@@ -79,7 +79,10 @@ export function ChargingMilestones({
       <Text style={styles.sectionTitle}>CHARGE MILESTONES</Text>
       <View style={styles.list}>
         {[...milestones].reverse().map((m, index, arr) => {
-          const isNext = !m.reached && (index === arr.length - 1 || arr[index + 1].reached);
+          // arr is reversed: index 0 = 100%, last index = 10%
+          // "next" milestone = not yet reached, but the one below it (index - 1) IS reached
+          // (or it's the very bottom milestone and nothing is reached yet)
+          const isNext = !m.reached && (index === 0 || arr[index - 1].reached);
           const milestoneColor = interpolateColor(m.percent);
           const milestoneDark = darkenColor(m.percent);
 

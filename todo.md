@@ -139,3 +139,5 @@
 - [x] Rename app to "Battery Buddy" throughout
 - [x] Update thermal state labels to friendlier language (Cool, Warm, Running Hot, Very Hot) and soften descriptions
 - [x] Replace ALL remaining "Power Monitor" references with "Battery Buddy" across every file
+- [x] Update privacy policy URL to https://conwaygoods.com/pages/battery-buddy-privacy
+- [x] Fix charge milestone circles — isNext logic was inverted after array reverse, now correctly highlights the next milestone to reach
