@@ -98,26 +98,36 @@ export function ChargingMilestones({
                 />
               )}
 
-              {/* Dot */}
+              {/* Dot — outer ring for border, inner fill for colour */}
               <View
                 style={[
-                  styles.dot,
+                  styles.dotOuter,
                   m.reached
-                    ? { backgroundColor: milestoneColor }
+                    ? { borderColor: milestoneColor }
                     : isNext
-                    ? { backgroundColor: milestoneColor, borderWidth: 2, borderColor: milestoneDark }
-                    : styles.dotPending,
+                    ? { borderColor: milestoneDark }
+                    : { borderColor: "#D1D5DB" },
                 ]}
               >
-                {m.reached ? (
-                  <Text style={[
-                    styles.checkmark,
-                    // Use dark text on bright yellow, white on darker colors
-                    m.percent >= 44 && m.percent <= 69 ? { color: "#78350F" } : { color: "#FFFFFF" },
-                  ]}>✓</Text>
-                ) : (
-                  <Text style={styles.dotPercent}>{m.percent}</Text>
-                )}
+                <View
+                  style={[
+                    styles.dotInner,
+                    m.reached
+                      ? { backgroundColor: milestoneColor }
+                      : isNext
+                      ? { backgroundColor: milestoneColor }
+                      : { backgroundColor: "#E5E7EB" },
+                  ]}
+                >
+                  {m.reached ? (
+                    <Text style={[
+                      styles.checkmark,
+                      m.percent >= 44 && m.percent <= 69 ? { color: "#78350F" } : { color: "#FFFFFF" },
+                    ]}>✓</Text>
+                  ) : (
+                    <Text style={styles.dotPercent}>{m.percent}</Text>
+                  )}
+                </View>
               </View>
 
               {/* Label */}
@@ -188,18 +198,23 @@ const styles = StyleSheet.create({
     height: 20,
     zIndex: 0,
   },
-  dot: {
+  dotOuter: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
+    overflow: "hidden",
   },
-  dotPending: {
-    backgroundColor: "#E5E7EB",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
+  dotInner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   checkmark: {
     fontSize: 18,

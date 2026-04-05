@@ -141,3 +141,4 @@
 - [x] Replace ALL remaining "Power Monitor" references with "Battery Buddy" across every file
 - [x] Update privacy policy URL to https://conwaygoods.com/pages/battery-buddy-privacy
 - [x] Fix charge milestone circles — isNext logic was inverted after array reverse, now correctly highlights the next milestone to reach
+- [x] Fix charge milestone circle fill overflow — separated into outer border ring and inner fill view with overflow:hidden
