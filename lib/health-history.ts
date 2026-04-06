@@ -30,11 +30,15 @@ export interface DailyHealthEntry {
   drainRateSum: number;
   thermalScoreSum: number;
   thermalSampleCount: number;
+  /** Total % dropped across all sessions today (for charge frequency proxy) */
+  totalPercentDropped?: number;
 }
 
 export interface HealthBaseline {
   /** Average drain rate from first 7 days of use (%/min) */
   avgDrainRate: number;
+  /** Average sessions per day from first 7 days (charge frequency baseline) */
+  avgSessionsPerDay?: number;
   /** ISO date when baseline was established */
   establishedDate: string;
   /** Number of sessions used to compute baseline */
@@ -163,8 +167,11 @@ async function maybeEstablishBaseline(log: DailyHealthEntry[]): Promise<void> {
   );
   const avgDrainRate = totalSessions > 0 ? weightedSum / totalSessions : 0;
 
+  const avgSessionsPerDay = totalSessions / baselineDays.length;
+
   const baseline: HealthBaseline = {
     avgDrainRate,
+    avgSessionsPerDay,
     establishedDate: todayKey(),
     sessionCount: totalSessions,
   };
@@ -238,6 +245,45 @@ export function computeHealthEstimate(
   return { tier, label, description, score, hasBaseline: true };
 }
 
+// ─── Capacity estimation ───────────────────────────────────────────────────────
+
+/**
+ * Computes a 0–100 estimated battery capacity score for a single day.
+ *
+ * Algorithm:
+ *  1. Drain rate factor: how much faster is today's drain vs baseline?
+ *     ratio = today.avgDrainRate / baseline.avgDrainRate
+ *     drainScore = clamp(100 - (ratio - 1) * 80, 0, 100)
+ *
+ *  2. Thermal penalty: sustained heat accelerates degradation.
+ *     thermalPenalty = today.avgThermalScore * 8   (max ~8 pts/day at critical)
+ *
+ *  3. Charge frequency factor: more sessions/day than baseline → heavier use
+ *     freqRatio = today.sessionCount / baseline.avgSessionsPerDay
+ *     freqPenalty = clamp((freqRatio - 1) * 5, 0, 10)
+ *
+ *  Final = clamp(drainScore - thermalPenalty - freqPenalty, 0, 100)
+ *
+ * The score is then smoothed across the window using a 3-day rolling average.
+ */
+export function computeCapacityScore(
+  entry: DailyHealthEntry,
+  baseline: HealthBaseline
+): number {
+  if (entry.avgDrainRate <= 0) return -1; // no data
+
+  const ratio = entry.avgDrainRate / baseline.avgDrainRate;
+  const drainScore = Math.max(0, Math.min(100, 100 - (ratio - 1) * 80));
+
+  const thermalPenalty = (entry.avgThermalScore ?? 0) * 8;
+
+  const baseFreq = baseline.avgSessionsPerDay ?? 1;
+  const freqRatio = entry.sessionCount / Math.max(baseFreq, 0.5);
+  const freqPenalty = Math.max(0, Math.min(10, (freqRatio - 1) * 5));
+
+  return Math.max(0, Math.min(100, Math.round(drainScore - thermalPenalty - freqPenalty)));
+}
+
 // ─── Chart data helpers ─────────────────────────────────────────────────────────
 
 export interface ChartPoint {
@@ -298,4 +344,40 @@ export function buildThermalChartData(
   }
 
   return points;
+}
+
+/**
+ * Returns the last N days as chart points for estimated battery capacity (0–100%).
+ * Applies a 3-day rolling average to smooth the line.
+ */
+export function buildCapacityChartData(
+  log: DailyHealthEntry[],
+  baseline: HealthBaseline,
+  days: number = 30
+): ChartPoint[] {
+  const now = new Date();
+
+  // First pass: raw scores per day
+  const raw: { date: string; label: string; score: number; hasData: boolean }[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const entry = log.find((e) => e.date === key);
+    const score = entry ? computeCapacityScore(entry, baseline) : -1;
+    raw.push({
+      date: key,
+      label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      score,
+      hasData: score >= 0,
+    });
+  }
+
+  // Second pass: 3-day rolling average on valid points
+  return raw.map((pt, i) => {
+    if (!pt.hasData) return { date: pt.label, value: 0, hasData: false };
+    const window = raw.slice(Math.max(0, i - 2), i + 1).filter((p) => p.hasData);
+    const avg = window.reduce((s, p) => s + p.score, 0) / window.length;
+    return { date: pt.label, value: Math.round(avg), hasData: true };
+  });
 }

@@ -151,3 +151,7 @@
 - [x] Add Conway Electric Extō USB-C smart charger info card in history/health section
 - [x] Health trend charts always visible at top of History tab even when unpopulated (overlay message instead of hiding)
 - [x] Reorder History tab charts: battery health chart first, drain rate chart second
+- [x] Add estimated battery capacity algorithm to health-history lib (synthesizes drain rate acceleration, charge frequency, thermal exposure)
+- [x] Add Estimated Battery Capacity chart (0-100%) as the first chart on History tab
+- [x] Consolidate health estimate badge into the capacity chart card
+- [x] Replace three separate health charts with one unified multi-line chart (capacity + drain rate + temperature on same canvas)

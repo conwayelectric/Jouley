@@ -25,10 +25,11 @@ import {
   computeHealthEstimate,
   buildDrainRateChartData,
   buildThermalChartData,
+  buildCapacityChartData,
   DailyHealthEntry,
   HealthBaseline,
 } from "@/lib/health-history";
-import { HealthLineChart } from "@/components/health-line-chart";
+import { BatteryHealthChart } from "@/components/battery-health-chart";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CHART_PADDING = 32;
@@ -190,8 +191,11 @@ function HealthTrendSection({ dailyLog, baseline }: HealthTrendSectionProps) {
 
   const drainPoints = buildDrainRateChartData(dailyLog, days);
   const thermalPoints = buildThermalChartData(dailyLog, days);
+  const capacityPoints = baseline
+    ? buildCapacityChartData(dailyLog, baseline, days)
+    : drainPoints.map((p) => ({ ...p, value: 0, hasData: false }));
 
-  // Compute health estimate from recent 14-day average
+  // Health estimate from recent 14-day average
   const recent14 = buildDrainRateChartData(dailyLog, 14).filter((p) => p.hasData);
   const recentAvg =
     recent14.length > 0
@@ -200,9 +204,13 @@ function HealthTrendSection({ dailyLog, baseline }: HealthTrendSectionProps) {
   const estimate = computeHealthEstimate(recentAvg, baseline);
   const tierColor = TIER_COLORS[estimate.tier] ?? "#6B7280";
 
+  // Current capacity: most recent populated capacity point
+  const latestCapacity =
+    capacityPoints.filter((p) => p.hasData).slice(-1)[0]?.value ?? null;
+
   return (
     <>
-      {/* Section header */}
+      {/* 30D / 90D toggle */}
       <View style={healthStyles.sectionHeader}>
         <Text style={healthStyles.sectionTitle}>BATTERY HEALTH TREND</Text>
         <View style={healthStyles.toggleRow}>
@@ -220,54 +228,23 @@ function HealthTrendSection({ dailyLog, baseline }: HealthTrendSectionProps) {
         </View>
       </View>
 
-      {/* Health estimate badge */}
+      {/* Unified three-series chart */}
+      <BatteryHealthChart
+        capacityPoints={capacityPoints}
+        drainPoints={drainPoints}
+        thermalPoints={thermalPoints}
+        currentCapacity={estimate.hasBaseline ? latestCapacity : null}
+        healthLabel={estimate.label}
+        healthColor={tierColor}
+        days={days}
+      />
+
+      {/* Health description */}
       <View style={[healthStyles.estimateCard, { borderLeftColor: tierColor }]}>
-        <View style={healthStyles.estimateRow}>
-          <Text style={[healthStyles.estimateLabel, { color: tierColor }]}>
-            {estimate.label.toUpperCase()}
-          </Text>
-          {estimate.hasBaseline && (
-            <Text style={healthStyles.estimateScore}>
-              Score {estimate.score}/100
-            </Text>
-          )}
-        </View>
+        <Text style={[healthStyles.estimateLabel, { color: tierColor }]}>
+          {estimate.label.toUpperCase()}
+        </Text>
         <Text style={healthStyles.estimateDesc}>{estimate.description}</Text>
-      </View>
-
-      {/* Thermal trend line chart — battery health indicator */}
-      <HealthLineChart
-        points={thermalPoints}
-        series="thermal"
-        title="BATTERY TEMPERATURE TREND"
-        subtitle={`${days}-day average thermal score — lower is cooler`}
-        unit="score"
-        maxValue={1.0}
-      />
-
-      {/* Drain rate line chart */}
-      <HealthLineChart
-        points={drainPoints}
-        series="drain"
-        title="DRAIN RATE OVER TIME"
-        subtitle={`${days}-day average drain rate (%/min) — lower is better`}
-        unit="%/min"
-        maxValue={0.8}
-      />
-
-      {/* Thermal legend */}
-      <View style={healthStyles.thermalLegend}>
-        {[
-          { color: "#00C2FF", label: "Cool" },
-          { color: "#F5A623", label: "Warm" },
-          { color: "#FF6B00", label: "Running Hot" },
-          { color: "#FF2D2D", label: "Very Hot" },
-        ].map(({ color, label }) => (
-          <View key={label} style={healthStyles.legendItem}>
-            <View style={[healthStyles.legendDot, { backgroundColor: color }]} />
-            <Text style={healthStyles.legendLabel}>{label}</Text>
-          </View>
-        ))}
       </View>
     </>
   );
