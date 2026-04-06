@@ -189,7 +189,7 @@ export function BatteryHealthChart({
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.title}>BATTERY HEALTH OVERVIEW</Text>
-          <Text style={styles.subtitle}>{days}-day trend — capacity, drain rate &amp; temperature</Text>
+          <Text style={styles.subtitle}>{days}-day trend — est. battery life, drain rate &amp; temperature</Text>
         </View>
         {/* Current capacity badge */}
         <View style={[styles.badge, { borderColor: healthColor }]}>
@@ -198,7 +198,7 @@ export function BatteryHealthChart({
               <Text style={[styles.badgeScore, { color: healthColor }]}>
                 {currentCapacity}%
               </Text>
-              <Text style={styles.badgeLabel}>{healthLabel}</Text>
+              <Text style={styles.badgeLabel}>Battery Life</Text>
             </>
           ) : (
             <Text style={[styles.badgeLabel, { color: "#9CA3AF" }]}>
@@ -382,7 +382,7 @@ export function BatteryHealthChart({
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendLine, { backgroundColor: SERIES_COLORS.capacity }]} />
-          <Text style={styles.legendLabel}>Est. Capacity</Text>
+          <Text style={styles.legendLabel}>Est. Battery Life</Text>
         </View>
         <View style={styles.legendItem}>
           <View
