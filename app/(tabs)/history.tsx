@@ -235,6 +235,16 @@ function HealthTrendSection({ dailyLog, baseline }: HealthTrendSectionProps) {
         <Text style={healthStyles.estimateDesc}>{estimate.description}</Text>
       </View>
 
+      {/* Thermal trend line chart — battery health indicator */}
+      <HealthLineChart
+        points={thermalPoints}
+        series="thermal"
+        title="BATTERY TEMPERATURE TREND"
+        subtitle={`${days}-day average thermal score — lower is cooler`}
+        unit="score"
+        maxValue={1.0}
+      />
+
       {/* Drain rate line chart */}
       <HealthLineChart
         points={drainPoints}
@@ -243,16 +253,6 @@ function HealthTrendSection({ dailyLog, baseline }: HealthTrendSectionProps) {
         subtitle={`${days}-day average drain rate (%/min) — lower is better`}
         unit="%/min"
         maxValue={0.8}
-      />
-
-      {/* Thermal trend line chart */}
-      <HealthLineChart
-        points={thermalPoints}
-        series="thermal"
-        title="THERMAL TREND"
-        subtitle={`${days}-day average thermal score — lower is cooler`}
-        unit="score"
-        maxValue={1.0}
       />
 
       {/* Thermal legend */}
@@ -629,47 +629,44 @@ export default function HistoryScreen() {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Loading...</Text>
         </View>
-      ) : sessions.length === 0 ? (
-        <FlatList
-          data={[]}
-          keyExtractor={() => "empty"}
-          renderItem={null}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <>
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>📋</Text>
-                <Text style={styles.emptyTitle}>No Sessions Yet</Text>
-                <Text style={styles.emptyText}>
-                  Session history is recorded each time you unplug your device after a
-                  discharge period. Plug in and unplug to start tracking.
-                </Text>
-              </View>
-              <BatteryCareSection />
-            </>
-          }
-        />
       ) : (
         <FlatList
           data={sessions}
           keyExtractor={(item) => item.id}
-          renderItem={renderSession}
+          renderItem={sessions.length > 0 ? renderSession : null}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <>
-              <WeeklyChart sessions={sessions} />
+              {/* Health trend charts always at the very top */}
               <HealthTrendSection dailyLog={dailyLog} baseline={baseline} />
-              <BatteryCareSection />
-              <View style={styles.listHeader}>
-                <Text style={styles.listHeaderText}>
-                  {sessions.length} session{sessions.length !== 1 ? "s" : ""} recorded
-                </Text>
-                <TouchableOpacity onPress={handleClear} style={styles.clearBtn}>
-                  <Text style={styles.clearBtnText}>Clear All</Text>
-                </TouchableOpacity>
-              </View>
+
+              {sessions.length > 0 ? (
+                <>
+                  <WeeklyChart sessions={sessions} />
+                  <BatteryCareSection />
+                  <View style={styles.listHeader}>
+                    <Text style={styles.listHeaderText}>
+                      {sessions.length} session{sessions.length !== 1 ? "s" : ""} recorded
+                    </Text>
+                    <TouchableOpacity onPress={handleClear} style={styles.clearBtn}>
+                      <Text style={styles.clearBtnText}>Clear All</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyIcon}>📋</Text>
+                    <Text style={styles.emptyTitle}>No Sessions Yet</Text>
+                    <Text style={styles.emptyText}>
+                      Session history is recorded each time you unplug your device after a
+                      discharge period. Plug in and unplug to start tracking.
+                    </Text>
+                  </View>
+                  <BatteryCareSection />
+                </>
+              )}
             </>
           }
         />

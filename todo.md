@@ -149,3 +149,5 @@
 - [x] Add battery health trend section to History tab with 30-day and 90-day views
 - [x] Add battery care tips info section below health chart (lithium-ion best practices)
 - [x] Add Conway Electric Extō USB-C smart charger info card in history/health section
+- [x] Health trend charts always visible at top of History tab even when unpopulated (overlay message instead of hiding)
+- [x] Reorder History tab charts: battery health chart first, drain rate chart second
