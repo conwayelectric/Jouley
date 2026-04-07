@@ -273,7 +273,6 @@ export default function HomeScreen() {
           <View style={styles.headerText}>
             <Text style={styles.headerTitle}>CONWAY ELECTRIC</Text>
             <Text style={styles.headerSubtitle}>JOULEY · {headerSubtitle.toUpperCase()}</Text>
-            <Text style={styles.headerTagline}>Keep your battery alive</Text>
           </View>
         </View>
 
