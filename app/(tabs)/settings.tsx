@@ -302,7 +302,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.row}
-            onPress={() => Linking.openURL("https://conwaygoods.com/pages/battery-buddy-privacy")}
+            onPress={() => Linking.openURL("https://conwaygoods.com/pages/jouley-privacy-policy")}
             activeOpacity={0.7}
           >
             <View style={styles.rowText}>
