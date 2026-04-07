@@ -28,7 +28,7 @@ const SLIDES: OnboardingSlide[] = [
   {
     id: "welcome",
     emoji: "⚡",
-    title: "Welcome to Jouley",
+    title: "Welcome to JOULEY",
     body: "Jouley keeps you informed about your battery in a calm, positive way — so you're never caught off guard.",
   },
   {

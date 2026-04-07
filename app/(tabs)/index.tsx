@@ -273,6 +273,7 @@ export default function HomeScreen() {
           <View style={styles.headerText}>
             <Text style={styles.headerTitle}>CONWAY ELECTRIC</Text>
             <Text style={styles.headerSubtitle}>JOULEY · {headerSubtitle.toUpperCase()}</Text>
+            <Text style={styles.headerTagline}>Keep your battery alive</Text>
           </View>
         </View>
 
@@ -684,6 +685,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginTop: 2,
     textAlign: "center",
+  },
+  headerTagline: {
+    fontSize: 11,
+    fontWeight: "400",
+    color: "#9CA3AF",
+    letterSpacing: 0.5,
+    marginTop: 3,
+    textAlign: "center",
+    fontStyle: "italic",
   },
   dividerLine: {
     height: 1,

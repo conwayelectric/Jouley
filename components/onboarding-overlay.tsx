@@ -31,6 +31,7 @@ const OVERLAY_BG  = "rgba(0,40,20,0.55)"; // softer, slightly green-tinted dark
 interface Step {
   id: string;
   title: string;
+  tagline?: string;
   body: string;
   spotlight: { x: number; y: number; w: number; h: number } | null;
   tooltipPosition: "top" | "bottom" | "middle";
@@ -39,7 +40,8 @@ interface Step {
 const STEPS: Step[] = [
   {
     id: "welcome",
-    title: "Welcome to Jouley",
+    title: "Welcome to JOULEY",
+    tagline: "Keep your battery alive",
     body: "Hi there! Jouley is here to keep you calm and informed about your battery — no stress, just friendly reminders and helpful tips. Let's take a quick tour so you know where everything is.",
     spotlight: null,
     tooltipPosition: "middle",
@@ -187,6 +189,7 @@ export function OnboardingOverlay({ onDone }: OnboardingOverlayProps) {
         </View>
 
         <Text style={styles.tooltipTitle}>{current.title}</Text>
+        {current.tagline ? <Text style={styles.tooltipTagline}>{current.tagline}</Text> : null}
 
         <ScrollView style={styles.bodyScroll} showsVerticalScrollIndicator={false} bounces={false}>
           <Text style={styles.tooltipBody}>{current.body}</Text>
@@ -281,6 +284,15 @@ const styles = StyleSheet.create({
     color: "#064E3B",
     letterSpacing: -0.3,
     lineHeight: 25,
+  },
+  tooltipTagline: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: "#059669",
+    letterSpacing: 0.5,
+    fontStyle: "italic",
+    marginTop: 2,
+    marginBottom: 4,
   },
   tooltipBody: {
     fontSize: 14,

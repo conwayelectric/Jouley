@@ -161,3 +161,4 @@
 - [x] Fix charging milestone circles: only fill when battery has reached that milestone level
 - [x] Rename app to "Jouley" in app.config.ts and all in-app text references
 - [ ] Generate new Jouley app icon (deferred — user to decide on design later)
+- [x] Add tagline "Keep your battery alive" to onboarding and app header
