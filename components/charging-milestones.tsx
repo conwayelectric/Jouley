@@ -115,7 +115,7 @@ export function ChargingMilestones({
                     m.reached
                       ? { backgroundColor: milestoneColor }
                       : isNext
-                      ? { backgroundColor: milestoneColor }
+                      ? { backgroundColor: "#F3F4F6" }
                       : { backgroundColor: "#E5E7EB" },
                   ]}
                 >
