@@ -119,7 +119,7 @@ export default function SettingsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>SETTINGS</Text>
-          <Text style={styles.headerSubtitle}>BATTERY BUDDY</Text>
+          <Text style={styles.headerSubtitle}>JOULEY</Text>
         </View>
         <View style={styles.divider} />
 

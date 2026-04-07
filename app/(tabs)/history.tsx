@@ -597,7 +597,7 @@ export default function HistoryScreen() {
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>CONWAY ELECTRIC</Text>
-          <Text style={styles.headerSubtitle}>BATTERY BUDDY · SESSION HISTORY</Text>
+          <Text style={styles.headerSubtitle}>JOULEY · SESSION HISTORY</Text>
         </View>
       </View>
       <View style={styles.dividerLine} />
