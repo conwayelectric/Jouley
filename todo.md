@@ -156,3 +156,4 @@
 - [x] Consolidate health estimate badge into the capacity chart card
 - [x] Replace three separate health charts with one unified multi-line chart (capacity + drain rate + temperature on same canvas)
 - [x] Rename "Est. Capacity" / "Battery Capacity" to "Estimated Battery Life" in chart and history tab
+- [x] Add info (ⓘ) icon button to Battery Health Overview chart with expandable explanation of Estimated Battery Life vs Apple Battery Health

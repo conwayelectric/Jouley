@@ -14,8 +14,8 @@
  * overlay pill so users see the UI immediately.
  */
 
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from "react-native";
 import Svg, {
   Path,
   Defs,
@@ -144,6 +144,8 @@ export function BatteryHealthChart({
   healthColor,
   days,
 }: BatteryHealthChartProps) {
+  const [infoVisible, setInfoVisible] = useState(false);
+
   const hasEnoughData =
     capacityPoints.filter((p) => p.hasData).length >= 3 ||
     drainPoints.filter((p) => p.hasData).length >= 3;
@@ -187,8 +189,17 @@ export function BatteryHealthChart({
     <View style={styles.card}>
       {/* Header row */}
       <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.title}>BATTERY HEALTH OVERVIEW</Text>
+        <View style={styles.titleGroup}>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>BATTERY HEALTH OVERVIEW</Text>
+            <TouchableOpacity
+              onPress={() => setInfoVisible((v) => !v)}
+              style={styles.infoBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.infoBtnText}>ⓘ</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.subtitle}>{days}-day trend — est. battery life, drain rate &amp; temperature</Text>
         </View>
         {/* Current capacity badge */}
@@ -378,6 +389,22 @@ export function BatteryHealthChart({
         </View>
       )}
 
+      {/* Info panel — shown when ⓘ is tapped */}
+      {infoVisible && (
+        <View style={styles.infoPanel}>
+          <Text style={styles.infoPanelTitle}>ABOUT THIS CHART</Text>
+          <Text style={styles.infoPanelText}>
+            <Text style={{ fontWeight: "700" }}>Est. Battery Life</Text> is a relative performance score (0–100%) based on how your battery behaves compared to your personal baseline from the first week of use. It tracks drain speed, charge frequency, and thermal exposure over time.
+          </Text>
+          <Text style={styles.infoPanelText}>
+            <Text style={{ fontWeight: "700" }}>Apple’s Battery Health</Text> (Settings → Battery → Battery Health) is a direct electrochemical measurement of remaining cell capacity. The two numbers measure different things and will not match.
+          </Text>
+          <Text style={styles.infoPanelNote}>
+            Tip: use Apple’s Battery Health for the authoritative reading, and this chart to watch whether your day-to-day performance is trending down over time.
+          </Text>
+        </View>
+      )}
+
       {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
@@ -535,5 +562,48 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#6B7280",
     fontWeight: "600",
+  },
+  titleGroup: {
+    flex: 1,
+    marginRight: 8,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  infoBtn: {
+    marginTop: -1,
+  },
+  infoBtnText: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    lineHeight: 16,
+  },
+  infoPanel: {
+    backgroundColor: "#F0F9FF",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+    padding: 12,
+    gap: 6,
+  },
+  infoPanelTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#0369A1",
+    letterSpacing: 0.5,
+  },
+  infoPanelText: {
+    fontSize: 12,
+    color: "#374151",
+    lineHeight: 18,
+    fontWeight: "400",
+  },
+  infoPanelNote: {
+    fontSize: 11,
+    color: "#6B7280",
+    lineHeight: 16,
+    fontStyle: "italic",
   },
 });
