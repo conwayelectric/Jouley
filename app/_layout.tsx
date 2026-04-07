@@ -82,7 +82,7 @@ export default function RootLayout() {
       if (status !== "granted") {
         Alert.alert(
           "Enable Notifications",
-          "Battery Buddy needs notification permission to send you friendly reminders when your battery is running low. You can enable this in Settings.",
+          "Jouley needs notification permission to send you friendly reminders when your battery is running low. You can enable this in Settings.",
           [{ text: "OK" }]
         );
       }

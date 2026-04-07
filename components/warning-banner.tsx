@@ -37,7 +37,7 @@ function getWarningMessage(minutes: number): string {
   if (minutes <= 7) return `${minutes} minutes to go — time to plug in and keep the momentum going.`;
   if (minutes <= 10) return `${minutes} minutes left — a quick charge now will keep you going strong.`;
   if (minutes <= 15) return `About ${minutes} minutes remaining — now's a great time to find a charger.`;
-  return `Great news — you still have ${minutes} minutes. Open Battery Buddy to see how to extend your time.`;
+  return `Great news — you still have ${minutes} minutes. Open Jouley to see how to extend your time.`;
 }
 
 export function WarningBanner({ minutesLeft, activeWarning }: WarningBannerProps) {

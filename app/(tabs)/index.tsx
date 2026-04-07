@@ -577,7 +577,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.discountBody}>
-              Conway Electric offers premium smart charging power cords and advanced lighting. Save 15% off your next purchase with this exclusive Battery Buddy discount code. Single-use code — valid for 30 days.
+              Conway Electric offers premium smart charging power cords and advanced lighting. Save 15% off your next purchase with this exclusive Jouley discount code. Single-use code — valid for 30 days.
             </Text>
             <TouchableOpacity
               style={styles.shopNowBtn}
@@ -624,7 +624,7 @@ export default function HomeScreen() {
             const androidUrl = "https://play.google.com/store/apps/details?id=space.manus.battery.guardian"; // replace after publish
             const storeUrl = Platform.OS === "android" ? androidUrl : iosUrl;
             Share.share({
-              message: `I use Battery Buddy so I always know how much time I have left in my battery. You can download it here: ${storeUrl}`,
+              message: `I use Jouley so I always know how much time I have left in my battery. You can download it here: ${storeUrl}`,
               url: storeUrl, // iOS uses this for the native share sheet URL preview
             });
           }}

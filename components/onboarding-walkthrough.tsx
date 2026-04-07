@@ -28,8 +28,8 @@ const SLIDES: OnboardingSlide[] = [
   {
     id: "welcome",
     emoji: "⚡",
-    title: "Welcome to Battery Buddy",
-    body: "Battery Buddy keeps you informed about your battery in a calm, positive way — so you're never caught off guard.",
+    title: "Welcome to Jouley",
+    body: "Jouley keeps you informed about your battery in a calm, positive way — so you're never caught off guard.",
   },
   {
     id: "ring",
@@ -79,7 +79,7 @@ const SLIDES: OnboardingSlide[] = [
     id: "ready",
     emoji: "✅",
     title: "You're All Set",
-    body: "That's everything you need to know. Enjoy using Battery Buddy — and remember, your battery is in good hands.",
+    body: "That's everything you need to know. Enjoy using Jouley — and remember, your battery is in good hands.",
   },
 ];
 

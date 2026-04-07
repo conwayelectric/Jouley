@@ -159,3 +159,5 @@
 - [x] Add info (ⓘ) icon button to Battery Health Overview chart with expandable explanation of Estimated Battery Life vs Apple Battery Health
 - [x] Fix battery ring color thresholds: yellow from 45% to 70% (was incorrectly 45–60%)
 - [x] Fix charging milestone circles: only fill when battery has reached that milestone level
+- [x] Rename app to "Jouley" in app.config.ts and all in-app text references
+- [ ] Generate new Jouley app icon (deferred — user to decide on design later)

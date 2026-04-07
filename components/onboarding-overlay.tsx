@@ -39,8 +39,8 @@ interface Step {
 const STEPS: Step[] = [
   {
     id: "welcome",
-    title: "Welcome to Battery Buddy",
-    body: "Hi there! Battery Buddy is here to keep you calm and informed about your battery — no stress, just friendly reminders and helpful tips. Let's take a quick tour so you know where everything is.",
+    title: "Welcome to Jouley",
+    body: "Hi there! Jouley is here to keep you calm and informed about your battery — no stress, just friendly reminders and helpful tips. Let's take a quick tour so you know where everything is.",
     spotlight: null,
     tooltipPosition: "middle",
   },

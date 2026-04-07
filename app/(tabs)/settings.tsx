@@ -87,7 +87,7 @@ export default function SettingsScreen() {
     } else {
       Alert.alert(
         "Notifications Disabled",
-        "To receive battery reminders, please enable notifications for Battery Buddy in your device Settings.",
+        "To receive battery reminders, please enable notifications for Jouley in your device Settings.",
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -308,7 +308,7 @@ export default function SettingsScreen() {
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>Privacy Policy</Text>
               <Text style={styles.rowDesc}>
-                Read how Battery Buddy handles your data.
+                Read how Jouley handles your data.
               </Text>
             </View>
             <Text style={styles.chevron}>›</Text>
