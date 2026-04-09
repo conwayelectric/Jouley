@@ -12,7 +12,7 @@ const env = {
   appSlug: "jouley",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/110712656/axmzBrSBwPjAmfaR.png",
+  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/110712656/ZLbbAkArCGxAOtQx.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
