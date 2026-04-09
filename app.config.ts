@@ -3,7 +3,7 @@ import "./scripts/load-env.js";
 import type { ExpoConfig } from "expo/config";
 
 // Bundle ID for JOULEY by Conway Goods
-const bundleId = "com.conwaygoods.jouley";
+const bundleId = "COM.CONWAYELECTRIC.JOULEY";
 const schemeFromBundleId = "jouley";
 
 const env = {
@@ -113,7 +113,7 @@ const config: ExpoConfig = {
   ],
   extra: {
     eas: {
-      projectId: "5e236cf9-220d-4955-9343-772477418742",
+      projectId: "",
     },
   },
   owner: "kcfaul",
