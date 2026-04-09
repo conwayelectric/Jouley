@@ -113,7 +113,7 @@ const config: ExpoConfig = {
   ],
   extra: {
     eas: {
-      projectId: "6adacb98-9c25-4bcc-b6a6-7cbd62c54eb9",
+      projectId: "c333b4a0-4eee-443b-ad38-aa0bb1aa0f13",
     },
   },
   owner: "kcfaul",
