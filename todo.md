@@ -163,3 +163,4 @@
 - [ ] Generate new Jouley app icon (deferred — user to decide on design later)
 - [x] Add tagline "Keep your battery alive" to onboarding and app header
 - [x] Update bundle ID to com.conwaygoods.jouley
+- [x] Configure EAS with Expo Project ID 6adacb98-9c25-4bcc-b6a6-7cbd62c54eb9
