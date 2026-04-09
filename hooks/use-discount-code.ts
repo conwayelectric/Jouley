@@ -13,9 +13,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 
-const STORAGE_KEY_DISCOUNT_CODE = "@battery_guardian:discount_code";
-const STORAGE_KEY_DISCOUNT_EXPIRES = "@battery_guardian:discount_expires";
-const STORAGE_KEY_DEVICE_ID = "@battery_guardian:device_id";
+const STORAGE_KEY_DISCOUNT_CODE = "@jouley:discount_code";
+const STORAGE_KEY_DISCOUNT_EXPIRES = "@jouley:discount_expires";
+const STORAGE_KEY_DEVICE_ID = "@jouley:device_id";
 
 export interface DiscountCodeState {
   code: string | null;

@@ -1,4 +1,4 @@
-# Battery Guardian — Design Document
+# JOULEY — Design Document
 
 ## App Concept
 A real-time battery monitoring app that acts like a personal battery assistant. It tracks drain rate, estimates how much time is left, fires progressive warnings before the battery dies, and — when charging — shows exactly how long until each key milestone is reached.
@@ -38,7 +38,7 @@ The entire app lives on one scrollable screen with two dynamic modes:
 ### Discharge Mode Layout (top → bottom)
 
 1. **App Header Bar**
-   - App name "Battery Guardian" in small caps
+   - App name "JOULEY" in small caps
    - Settings icon (top-right) for notification preferences
 
 2. **Battery Ring Gauge** (center, large)

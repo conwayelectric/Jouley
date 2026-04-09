@@ -621,7 +621,7 @@ export default function HomeScreen() {
           style={styles.shareButton}
           onPress={() => {
             const iosUrl = "https://apps.apple.com/app/id000000000"; // replace with real App Store ID after publish
-            const androidUrl = "https://play.google.com/store/apps/details?id=space.manus.battery.guardian"; // replace after publish
+            const androidUrl = "https://play.google.com/store/apps/details?id=com.conwaygoods.jouley"; // replace after publish
             const storeUrl = Platform.OS === "android" ? androidUrl : iosUrl;
             Share.share({
               message: `I use Jouley so I always know how much time I have left in my battery. You can download it here: ${storeUrl}`,

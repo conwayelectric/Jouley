@@ -1,4 +1,4 @@
-# Battery Guardian — TODO
+# JOULEY — TODO
 
 - [x] Generate custom app icon and update branding assets
 - [x] Install expo-battery and expo-notifications packages
