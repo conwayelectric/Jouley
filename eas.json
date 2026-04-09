@@ -36,9 +36,11 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "howdy@conwaygoods.com",
         "ascAppId": "6761878891",
-        "appleTeamId": "TL57PVCHK7"
+        "appleTeamId": "TL57PVCHK7",
+        "ascApiKeyPath": "C:\\Users\\howdy\\Documents\\ConwayElectric\\Products\\Apps\\Jouley\\AuthKey\\AuthKey_S3JLW3G95G.p8",
+        "ascApiKeyId": "S3JLW3G95G",
+        "ascApiIssuerId": "78f22ee5-b980-4a82-8689-59a1d40b4e6a"
       }
     }
   }
