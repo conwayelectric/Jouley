@@ -165,3 +165,4 @@
 - [x] Update bundle ID to com.conwaygoods.jouley
 - [x] Configure EAS with Expo Project ID 6adacb98-9c25-4bcc-b6a6-7cbd62c54eb9
 - [x] Update appSlug from battery-guardian to jouley in app.config.ts
+- [x] Fix EAS owner to kcfaul and add Apple ID howdy@conwaygoods.com to eas.json

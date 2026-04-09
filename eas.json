@@ -6,12 +6,18 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
+      }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
       }
     },
     "production": {
@@ -21,6 +27,18 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "howdy@conwaygoods.com",
+        "ascAppId": "6761878891",
+        "appleTeamId": "TL57PVCHK7"
       }
     }
   }

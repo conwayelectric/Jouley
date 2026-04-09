@@ -116,7 +116,7 @@ const config: ExpoConfig = {
       projectId: "6adacb98-9c25-4bcc-b6a6-7cbd62c54eb9",
     },
   },
-  owner: "conwaygoods",
+  owner: "kcfaul",
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
