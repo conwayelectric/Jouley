@@ -20,6 +20,9 @@ import {
 // Warning thresholds in minutes remaining (discharge)
 const DISCHARGE_WARNINGS = [20, 15, 10, 7, 5, 2];
 
+// Percentage-level discharge warnings — fire regardless of drain rate
+const DISCHARGE_LEVEL_WARNINGS = [20, 10];
+
 // Charging milestones in percent
 const CHARGE_MILESTONES = [10, 25, 50, 75, 100];
 
@@ -252,6 +255,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
 
   const samplesRef = useRef<BatterySample[]>([]);
   const firedWarningsRef = useRef<Set<number>>(new Set());
+  const firedLevelWarningsRef = useRef<Set<number>>(new Set());
   const firedMilestonesRef = useRef<Set<number>>(new Set());
   const prevModeRef = useRef<BatteryMode>("unknown");
   const notifPermRef = useRef<boolean>(false);
@@ -335,6 +339,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
           samplesRef.current = [];
         }
         firedWarningsRef.current = new Set();
+        firedLevelWarningsRef.current = new Set();
         firedMilestonesRef.current = new Set();
         prevModeRef.current = mode;
       }
@@ -385,7 +390,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
         const minutesRemaining =
           drainRate && drainRate > 0 ? Math.ceil(displayLevel / drainRate) : null;
 
-        // Check warnings (use OS level for accuracy, not interpolated)
+        // Check minutes-remaining warnings (use OS level for accuracy, not interpolated)
         let activeWarning: number | null = null;
         if (minutesRemaining !== null && notifPermRef.current) {
           for (const threshold of DISCHARGE_WARNINGS) {
@@ -402,6 +407,25 @@ export function useBatteryMonitor(): BatteryMonitorState {
                 activeWarning = threshold;
                 break;
               }
+            }
+          }
+        }
+
+        // Check percentage-level warnings — fire regardless of drain rate
+        if (notifPermRef.current) {
+          for (const pct of DISCHARGE_LEVEL_WARNINGS) {
+            if (osLevelPct <= pct && !firedLevelWarningsRef.current.has(pct)) {
+              firedLevelWarningsRef.current.add(pct);
+              Notifications.scheduleNotificationAsync({
+                content: {
+                  title: `🔋 Battery at ${pct}%`,
+                  body: pct <= 10
+                    ? "Battery is very low — plugging in soon would be a good move."
+                    : "Battery is getting low — a charger nearby would be helpful.",
+                  sound: "battery-alert.wav",
+                },
+                trigger: null,
+              }).catch(() => {});
             }
           }
         }

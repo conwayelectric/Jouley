@@ -167,3 +167,5 @@
 - [x] Update appSlug from battery-guardian to jouley in app.config.ts
 - [x] Fix EAS owner to kcfaul and add Apple ID howdy@conwaygoods.com to eas.json
 - [x] Interpolated battery level display: percentage updates in 1% steps between iOS reports using drain/charge rate and elapsed time
+- [x] Fix notifications not firing: added Notifications.setNotificationHandler() to _layout.tsx (was missing — caused all foreground notifications to be silently dropped)
+- [x] Add percentage-based discharge warnings at 20% and 10% (fire regardless of drain rate, in addition to existing minutes-remaining warnings)

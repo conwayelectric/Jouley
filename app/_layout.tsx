@@ -32,6 +32,18 @@ import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-run
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 
+// REQUIRED: must be called before any notification can be delivered while the app is in the foreground.
+// Without this, scheduleNotificationAsync calls are silently dropped when the app is open.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
 export const unstable_settings = {
   anchor: "(tabs)",
 };
