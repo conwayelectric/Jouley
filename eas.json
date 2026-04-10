@@ -28,7 +28,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true",
+        "EXPO_PUBLIC_API_BASE_URL": "https://jouley-discount-server-497593602087.us-central1.run.app"
       }
     }
   },
