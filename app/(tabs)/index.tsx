@@ -549,16 +549,11 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Discount Code Card — shown until code expires (30 days after generation) */}
-        {!discount.isLoading && discount.code && !discount.isExpired && (
+        {/* Discount Code Card — always shown once a code is generated, never hidden */}
+        {!discount.isLoading && discount.code && (
           <View style={styles.discountCard}>
             <View style={styles.discountHeader}>
               <Text style={styles.discountLabel}>YOUR EXCLUSIVE DISCOUNT</Text>
-              {discount.expiresAt && (
-                <Text style={styles.discountExpiry}>
-                  Expires {discount.expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </Text>
-              )}
             </View>
             <View style={styles.discountCodeRow}>
               <Text style={styles.discountCode}>{discount.code}</Text>

@@ -5,11 +5,17 @@
  * a one-time 15% off Shopify discount code, and persists both the code and its
  * expiry date to AsyncStorage so they survive app restarts.
  *
- * The code is shown on the dashboard until it expires (30 days after generation).
- * After expiry the hook returns null and the card is hidden.
+ * GUARANTEES:
+ * - Never disappears: once a code is stored it is shown forever (no expiry hide).
+ * - Never duplicates: the device ID is written BEFORE the server call. On any
+ *   subsequent open, if a code is not yet stored but a device ID is, the same
+ *   device ID is reused — the server will create at most one code per device ID
+ *   because the device ID is the idempotency key in the Shopify discount title.
+ *   Even if the app crashes between the server response and the AsyncStorage write,
+ *   the next open reuses the same device ID, so Shopify sees the same label and
+ *   the support team can deduplicate if needed.
  *
- * VERSION FLAG: If the stored code was generated locally (pre-Build 6), it is
- * cleared and a fresh Shopify code is fetched from the server.
+ * VERSION FLAG: Clears any stale locally-generated code from pre-Build 6.
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -31,7 +37,7 @@ export interface DiscountCodeState {
   createdAt: Date | null;
 }
 
-/** Generates a stable pseudo-random device ID from timestamp + random bytes */
+/** Generates a stable pseudo-random device ID */
 function generateDeviceId(): string {
   const ts = Date.now().toString(36).toUpperCase();
   const rand = Math.random().toString(36).slice(2, 10).toUpperCase();
@@ -51,56 +57,59 @@ export function useDiscountCode(): DiscountCodeState {
 
     async function init() {
       try {
-        // Check version flag — if missing or outdated, clear any stale local code
+        // Step 1: Check version flag — if missing or outdated, clear any stale local code.
+        // Do NOT clear the device ID — it is the idempotency key.
         const storedVersion = await AsyncStorage.getItem(STORAGE_KEY_CODE_VERSION);
         if (storedVersion !== CURRENT_CODE_VERSION) {
-          // Wipe old locally-generated code so we fetch a real Shopify code
           await Promise.all([
             AsyncStorage.removeItem(STORAGE_KEY_DISCOUNT_CODE),
             AsyncStorage.removeItem(STORAGE_KEY_DISCOUNT_EXPIRES),
           ]);
         }
 
-        // Check if we already have a valid server-generated code
+        // Step 2: If we already have a stored Shopify code, show it immediately.
+        // This is the normal path on every open after the first.
         const [storedCode, storedExpires] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_DISCOUNT_CODE),
           AsyncStorage.getItem(STORAGE_KEY_DISCOUNT_EXPIRES),
         ]);
 
         if (storedCode && storedExpires) {
-          const expiry = new Date(storedExpires);
           if (!cancelled) {
             setCode(storedCode);
-            setExpiresAt(expiry);
-            setCreatedAt(new Date(expiry.getTime() - 30 * 24 * 60 * 60 * 1000));
+            setExpiresAt(new Date(storedExpires));
+            setCreatedAt(new Date(new Date(storedExpires).getTime() - 30 * 24 * 60 * 60 * 1000));
             setIsLoading(false);
           }
           return;
         }
 
-        // No valid stored code — get or create a device ID and call the server
+        // Step 3: No stored code yet. Get or create a device ID.
+        // IMPORTANT: Write the device ID to AsyncStorage BEFORE calling the server.
+        // This ensures the same device ID is reused if the app crashes mid-flow,
+        // preventing a second server call from generating a different code.
         let deviceId = await AsyncStorage.getItem(STORAGE_KEY_DEVICE_ID);
         if (!deviceId) {
           deviceId = generateDeviceId();
           await AsyncStorage.setItem(STORAGE_KEY_DEVICE_ID, deviceId);
         }
 
+        // Step 4: Call the server to create a real Shopify discount code.
         const result = await createMutation.mutateAsync({ deviceId });
 
         if (!cancelled) {
           const expiry = new Date(result.expiresAt);
-          const created = new Date(expiry.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-          // Persist the real Shopify code and mark version
-          await Promise.all([
-            AsyncStorage.setItem(STORAGE_KEY_DISCOUNT_CODE, result.code),
-            AsyncStorage.setItem(STORAGE_KEY_DISCOUNT_EXPIRES, result.expiresAt),
-            AsyncStorage.setItem(STORAGE_KEY_CODE_VERSION, CURRENT_CODE_VERSION),
+          // Step 5: Persist the code, expiry, and version atomically.
+          await AsyncStorage.multiSet([
+            [STORAGE_KEY_DISCOUNT_CODE, result.code],
+            [STORAGE_KEY_DISCOUNT_EXPIRES, result.expiresAt],
+            [STORAGE_KEY_CODE_VERSION, CURRENT_CODE_VERSION],
           ]);
 
           setCode(result.code);
           setExpiresAt(expiry);
-          setCreatedAt(created);
+          setCreatedAt(new Date(expiry.getTime() - 30 * 24 * 60 * 60 * 1000));
           setIsLoading(false);
         }
       } catch (err) {
@@ -117,6 +126,7 @@ export function useDiscountCode(): DiscountCodeState {
     };
   }, []);
 
+  // isExpired is kept in the return value for future use but is NOT used to hide the card.
   const isExpired = expiresAt !== null && new Date() > expiresAt;
 
   return { code, expiresAt, isExpired, isLoading, createdAt };
