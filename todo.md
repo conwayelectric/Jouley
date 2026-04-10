@@ -166,3 +166,4 @@
 - [x] Configure EAS with Expo Project ID 6adacb98-9c25-4bcc-b6a6-7cbd62c54eb9
 - [x] Update appSlug from battery-guardian to jouley in app.config.ts
 - [x] Fix EAS owner to kcfaul and add Apple ID howdy@conwaygoods.com to eas.json
+- [x] Interpolated battery level display: percentage updates in 1% steps between iOS reports using drain/charge rate and elapsed time

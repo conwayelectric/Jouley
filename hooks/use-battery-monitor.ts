@@ -65,7 +65,7 @@ export interface MilestoneETA {
 }
 
 export interface BatteryMonitorState {
-  level: number;              // exact integer % from OS — never estimated
+  level: number;              // interpolated display % (whole number, updated every 5s)
   mode: BatteryMode;
   // Discharge
   drainRatePerMin: number | null;
@@ -112,6 +112,51 @@ function buildMilestones(
       return { percent: pct, minutesAway: null, reached: false };
     return { percent: pct, minutesAway: (pct - currentLevel) / chargeRatePerMin, reached: false };
   });
+}
+
+/**
+ * Interpolate a display-only battery percentage between iOS reports.
+ *
+ * iOS reports battery level in whole integer steps, sometimes minutes apart.
+ * This function uses the known drain/charge rate and elapsed time since the
+ * last iOS-reported level to estimate a smoother current value — still in
+ * whole 1% steps, never decimal.
+ *
+ * Rules:
+ * - Only interpolates when a confident rate is available (not during warmup).
+ * - Discharging: result is clamped so it never goes BELOW the OS-reported level
+ *   (we can estimate ahead of iOS, but we never contradict a confirmed drop).
+ * - Charging: result is clamped so it never goes ABOVE the OS-reported level.
+ * - Result is always a whole integer (Math.round).
+ * - Result is always clamped to [0, 100].
+ */
+function interpolateLevel(
+  osLevelPct: number,
+  osLevelTimestamp: number,
+  ratePerMin: number | null,
+  mode: BatteryMode,
+): number {
+  if (ratePerMin === null || ratePerMin <= 0) return osLevelPct;
+  if (mode !== "discharging" && mode !== "charging") return osLevelPct;
+
+  const elapsedMin = (Date.now() - osLevelTimestamp) / 60_000;
+  const delta = ratePerMin * elapsedMin;
+
+  let interpolated: number;
+  if (mode === "discharging") {
+    // Drain: level decreases. Clamp so we never go below osLevelPct
+    // (iOS will confirm the drop when it happens; we only estimate ahead of it).
+    interpolated = Math.round(osLevelPct - delta);
+    interpolated = Math.max(interpolated, osLevelPct - 1); // max 1% ahead of iOS
+    interpolated = Math.max(interpolated, 0);
+  } else {
+    // Charge: level increases. Clamp so we never go above osLevelPct.
+    interpolated = Math.round(osLevelPct + delta);
+    interpolated = Math.min(interpolated, osLevelPct + 1); // max 1% ahead of iOS
+    interpolated = Math.min(interpolated, 100);
+  }
+
+  return interpolated;
 }
 
 /**
@@ -212,6 +257,10 @@ export function useBatteryMonitor(): BatteryMonitorState {
   const notifPermRef = useRef<boolean>(false);
   const baselineDrainRateRef = useRef<number | null>(null); // long-window baseline for spike detection
 
+  // Track the last OS-confirmed level and its timestamp for interpolation
+  const osLevelPctRef = useRef<number>(0);
+  const osLevelTimestampRef = useRef<number>(Date.now());
+
   // Session tracking
   const sessionStartLevelRef = useRef<number | null>(null);
   const sessionStartTimeRef = useRef<number | null>(null);
@@ -230,8 +279,12 @@ export function useBatteryMonitor(): BatteryMonitorState {
 
   const compute = useCallback(
     async (level: number, batteryState: Battery.BatteryState) => {
-      // Level display: always the exact integer % from the OS, never estimated
-      const levelPct = Math.round(level * 100);
+      // OS-reported integer % — used for all rate calculations and as the interpolation anchor
+      const osLevelPct = Math.round(level * 100);
+
+      // Update the OS anchor whenever iOS gives us a new reading
+      osLevelPctRef.current = osLevelPct;
+      osLevelTimestampRef.current = Date.now();
 
       let mode: BatteryMode = "unknown";
       if (batteryState === Battery.BatteryState.CHARGING) mode = "charging";
@@ -257,7 +310,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
           saveSession({
             id: `${endTime}`,
             startLevel: sessionStartLevelRef.current,
-            endLevel: levelPct,
+            endLevel: osLevelPct,
             startTime: sessionStartTimeRef.current,
             endTime,
             durationMinutes: Math.max(1, Math.round(durationMs / 60_000)),
@@ -270,7 +323,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
         }
 
         if (mode === "discharging") {
-          sessionStartLevelRef.current = levelPct;
+          sessionStartLevelRef.current = osLevelPct;
           sessionStartTimeRef.current = Date.now();
           sessionDrainSamplesRef.current = [];
         }
@@ -287,7 +340,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
       }
 
       if (mode === "discharging" && sessionStartLevelRef.current === null) {
-        sessionStartLevelRef.current = levelPct;
+        sessionStartLevelRef.current = osLevelPct;
         sessionStartTimeRef.current = Date.now();
         sessionDrainSamplesRef.current = [];
       }
@@ -303,7 +356,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
         if (liveRate !== null && liveRate > 0) {
           sessionDrainSamplesRef.current.push(liveRate);
           storedDrainRateRef.current = liveRate; // keep ref in sync
-          updateStoredDrainRate(levelPct, liveRate);
+          updateStoredDrainRate(osLevelPct, liveRate);
           // Update baseline: use long-window rate as the stable reference
           if (baselineDrainRateRef.current === null) {
             baselineDrainRateRef.current = liveRate;
@@ -312,7 +365,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
             baselineDrainRateRef.current = baselineDrainRateRef.current * 0.9 + liveRate * 0.1;
           }
         } else {
-          updateStoredDrainRate(levelPct, null);
+          updateStoredDrainRate(osLevelPct, null);
         }
 
         // Spike detection: compare short-window rate to smoothed baseline
@@ -325,16 +378,20 @@ export function useBatteryMonitor(): BatteryMonitorState {
           shortRate >= SPIKE_MIN_BASELINE &&
           shortRate >= baseline * SPIKE_MULTIPLIER;
 
-        const minutesRemaining =
-          drainRate && drainRate > 0 ? Math.ceil(levelPct / drainRate) : null;
+        // Interpolated display level — smoother than raw OS level
+        // Uses the OS-confirmed level as anchor; only steps 1% at a time
+        const displayLevel = interpolateLevel(osLevelPct, osLevelTimestampRef.current, drainRate, mode);
 
-        // Check warnings
+        const minutesRemaining =
+          drainRate && drainRate > 0 ? Math.ceil(displayLevel / drainRate) : null;
+
+        // Check warnings (use OS level for accuracy, not interpolated)
         let activeWarning: number | null = null;
         if (minutesRemaining !== null && notifPermRef.current) {
           for (const threshold of DISCHARGE_WARNINGS) {
             if (minutesRemaining <= threshold && !firedWarningsRef.current.has(threshold)) {
               firedWarningsRef.current.add(threshold);
-              sendWarningNotification(threshold, drainRate, levelPct);
+              sendWarningNotification(threshold, drainRate, osLevelPct);
               activeWarning = threshold;
               break;
             }
@@ -351,7 +408,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
 
         setState((prev) => ({
           ...prev,
-          level: levelPct,
+          level: displayLevel,
           mode,
           drainRatePerMin: drainRate,
           minutesRemaining,
@@ -372,14 +429,19 @@ export function useBatteryMonitor(): BatteryMonitorState {
 
         if (liveRate !== null && liveRate > 0) {
           storedChargeRateRef.current = liveRate;
-          updateStoredChargeState(levelPct, liveRate);
+          updateStoredChargeState(osLevelPct, liveRate);
         } else {
-          updateStoredChargeState(levelPct, null);
+          updateStoredChargeState(osLevelPct, null);
         }
 
+        // Interpolated display level for charging
+        const displayLevel = mode === "full"
+          ? 100
+          : interpolateLevel(osLevelPct, osLevelTimestampRef.current, chargeRate, mode);
+
         const minutesToFull =
-          chargeRate && chargeRate > 0 ? Math.ceil((100 - levelPct) / chargeRate) : null;
-        const milestones = buildMilestones(levelPct, chargeRate ?? null);
+          chargeRate && chargeRate > 0 ? Math.ceil((100 - displayLevel) / chargeRate) : null;
+        const milestones = buildMilestones(displayLevel, chargeRate ?? null);
 
         if (notifPermRef.current) {
           for (const m of milestones) {
@@ -392,7 +454,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
 
         setState((prev) => ({
           ...prev,
-          level: levelPct,
+          level: displayLevel,
           mode,
           drainRatePerMin: null,
           minutesRemaining: null,
@@ -408,7 +470,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
       } else {
         setState((prev) => ({
           ...prev,
-          level: levelPct,
+          level: osLevelPct,
           mode,
           isCalculating: false,
           isRateEstimated: false,
@@ -525,6 +587,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
       });
 
       // Poll every 5s — keeps display in sync and refines rate continuously
+      // Also drives the interpolated level update between iOS reports
       displayTimer = setInterval(async () => {
         const [lvl, bState] = await Promise.all([
           Battery.getBatteryLevelAsync(),
