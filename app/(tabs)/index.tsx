@@ -23,7 +23,7 @@ import { useBatteryMonitor } from "@/hooks/use-battery-monitor";
 import { useThermalState } from "@/hooks/use-thermal-state";
 import { BatteryRing } from "@/components/battery-ring";
 import { ChargingMilestones } from "@/components/charging-milestones";
-import { StatsRow } from "@/components/stats-row";
+import { StatsRow, pastelColorForMinutes } from "@/components/stats-row";
 import { ThermalGauge } from "@/components/thermal-gauge";
 import { useDiscountCode } from "@/hooks/use-discount-code";
 import * as Clipboard from "expo-clipboard";
@@ -312,7 +312,20 @@ export default function HomeScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.timeValue}>
+              <Text style={[
+                styles.timeValue,
+                {
+                  color: isCharging
+                    ? battery.mode === "full"
+                      ? "#86EFAC"
+                      : battery.minutesToFull !== null
+                        ? battery.minutesToFull < 20 ? "#86EFAC" : battery.minutesToFull < 45 ? "#FDE68A" : "#FDBA8C"
+                        : "#00C2FF"
+                    : battery.minutesRemaining !== null
+                      ? pastelColorForMinutes(battery.minutesRemaining)
+                      : "#00C2FF",
+                },
+              ]}>
                 {isCharging
                   ? battery.mode === "full"
                     ? "Fully Charged 🎉"
@@ -359,6 +372,8 @@ export default function HomeScreen() {
           timeValue={timeValue}
           timeLabel={timeLabel}
           mode={battery.mode}
+          minutesRemaining={battery.minutesRemaining}
+          minutesToFull={battery.minutesToFull}
         />
 
         {/* Device Model — single line, OS/Brand details live in Settings */}

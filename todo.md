@@ -171,3 +171,7 @@
 - [x] Add percentage-based discharge warnings at 20% and 10% (fire regardless of drain rate, in addition to existing minutes-remaining warnings)
 - [x] Change battery ring gradient to pastel colors: soft rose → peach → pale yellow → sage green
 - [x] Change time remaining text color to cool blue #00C2FF (matches temperature scale cool indicator)
+- [x] Stats box current % color matches battery ring arc color (pastel by level)
+- [x] Drain rate pastel color: >=1% rose, >=0.5% yellow, <0.5% sage green
+- [x] Time remaining pastel color: <20min rose, <45min yellow, >=45min sage green (both stats box and time card)
+- [x] Center % in battery ring already uses ring arc color (no change needed)
