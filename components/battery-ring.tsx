@@ -14,23 +14,23 @@ const CX = SIZE / 2;
 const CY = SIZE / 2;
 const COLOR_TRACK = "#E5E7EB";
 
-// Gradient color zones — 5-point wide blends centered on each boundary:
-//  red    (#DC2626): 0–16.5% solid
-//  blend  16.5–23.5%: red → orange  (centered on 20%)
-//  orange (#EA580C): 23.5–42.5% solid
-//  blend  42.5–47.5%: orange → yellow  (centered on 45%)
-//  yellow (#FFE135): 47.5–67.5% solid
-//  blend  67.5–72.5%: yellow → green  (centered on 70%)
-//  green  (#16A34A): 72.5–100% solid
+// Pastel gradient color zones — soft, friendly tones:
+//  rose   (#F9A8A8): 0–16.5% solid
+//  blend  16.5–23.5%: rose → peach  (centered on 20%)
+//  peach  (#FDBA8C): 23.5–42.5% solid
+//  blend  42.5–47.5%: peach → pale yellow  (centered on 45%)
+//  yellow (#FDE68A): 47.5–67.5% solid
+//  blend  67.5–72.5%: pale yellow → sage green  (centered on 70%)
+//  sage   (#86EFAC): 72.5–100% solid
 const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
-  { pct: 0,    r: 220, g: 38,  b: 38  },
-  { pct: 16.5, r: 220, g: 38,  b: 38  },
-  { pct: 23.5, r: 234, g: 88,  b: 12  },
-  { pct: 42.5, r: 234, g: 88,  b: 12  },
-  { pct: 47.5, r: 255, g: 225, b: 53  },
-  { pct: 67.5, r: 255, g: 225, b: 53  },
-  { pct: 72.5, r: 22,  g: 163, b: 74  },
-  { pct: 100,  r: 22,  g: 163, b: 74  },
+  { pct: 0,    r: 249, g: 168, b: 168 },
+  { pct: 16.5, r: 249, g: 168, b: 168 },
+  { pct: 23.5, r: 253, g: 186, b: 140 },
+  { pct: 42.5, r: 253, g: 186, b: 140 },
+  { pct: 47.5, r: 253, g: 230, b: 138 },
+  { pct: 67.5, r: 253, g: 230, b: 138 },
+  { pct: 72.5, r: 134, g: 239, b: 172 },
+  { pct: 100,  r: 134, g: 239, b: 172 },
 ];
 
 function interpolateColor(pct: number): { r: number; g: number; b: number } {
