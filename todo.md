@@ -170,3 +170,4 @@
 - [x] Fix notifications not firing: added Notifications.setNotificationHandler() to _layout.tsx (was missing — caused all foreground notifications to be silently dropped)
 - [x] Add percentage-based discharge warnings at 20% and 10% (fire regardless of drain rate, in addition to existing minutes-remaining warnings)
 - [x] Change battery ring gradient to pastel colors: soft rose → peach → pale yellow → sage green
+- [x] Change time remaining text color to cool blue #00C2FF (matches temperature scale cool indicator)

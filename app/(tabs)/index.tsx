@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
   timeValue: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#111827",
+    color: "#00C2FF",
     textAlign: "center",
     letterSpacing: -0.5,
   },
