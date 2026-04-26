@@ -630,7 +630,7 @@ export default function HomeScreen() {
         <TouchableOpacity
           style={styles.shareButton}
           onPress={() => {
-            const iosUrl = "https://apps.apple.com/app/id000000000"; // replace with real App Store ID after publish
+            const iosUrl = "https://apps.apple.com/app/id6761895049";
             const androidUrl = "https://play.google.com/store/apps/details?id=com.conwaygoods.jouley"; // replace after publish
             const storeUrl = Platform.OS === "android" ? androidUrl : iosUrl;
             Share.share({

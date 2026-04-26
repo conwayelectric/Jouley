@@ -178,3 +178,6 @@
 - [x] Update battery ring gradient stops to Conway brand colors (orange/amber/yellow/green)
 - [x] Update track color to use theme.border.light (#D4CFC7)
 - [x] Update stats-row color helpers to match Conway brand color thresholds
+- [x] Update App Store share link to real App ID 6761895049
+- [x] Add build number auto-increment script (scripts/bump-build-number.mjs)
+- [x] Update GitHub Actions workflow to auto-bump build number before each EAS build

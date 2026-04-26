@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -21,6 +23,17 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Bump build number
+        run: node scripts/bump-build-number.mjs
+
+      - name: Commit bumped build number
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app.config.ts
+          git diff --staged --quiet || git commit -m "ci: bump iOS build number [skip ci]"
+          git push
 
       - name: Set up EAS CLI
         uses: expo/expo-github-action@v8
