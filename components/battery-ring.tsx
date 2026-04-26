@@ -17,16 +17,16 @@ const COLOR_TRACK = "#D4CFC7"; // theme.border.light — warm gray matching Conw
 // Conway brand color zones — smooth blends across transitions:
 //  critical (0–20%):   Conway Electric orange #E8450A — solid, then blends into amber by 30%
 //  low      (20–40%):  amber #F59E0B — solid, then blends into yellow by 50%
-//  moderate (40–60%):  yellow #EAB308 — solid, then blends into green by 75%
-//  good     (60–100%): green #22C55E
+//  moderate (40–70%):  yellow #EAB308 — solid, then blends into green by 85%
+//  good     (70–100%): green #22C55E
 const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
   { pct: 0,   r: 232, g: 69,  b: 10  }, // Conway orange — critical start
   { pct: 20,  r: 232, g: 69,  b: 10  }, // Conway orange — hold
   { pct: 30,  r: 245, g: 158, b: 11  }, // amber — blend complete
   { pct: 40,  r: 245, g: 158, b: 11  }, // amber — hold
   { pct: 50,  r: 234, g: 179, b: 8   }, // yellow — blend complete
-  { pct: 60,  r: 234, g: 179, b: 8   }, // yellow — hold
-  { pct: 75,  r: 34,  g: 197, b: 94  }, // green — blend complete
+  { pct: 70,  r: 234, g: 179, b: 8   }, // yellow — hold until 70%
+  { pct: 85,  r: 34,  g: 197, b: 94  }, // green — blend complete by 85%
   { pct: 100, r: 34,  g: 197, b: 94  }, // green — hold
 ];
 
