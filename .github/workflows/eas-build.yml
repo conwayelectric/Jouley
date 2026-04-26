@@ -39,8 +39,8 @@ jobs:
 
       - name: Write App Store Connect API key
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "${{ secrets.ASC_API_KEY_CONTENT }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
+          mkdir -p /root/.appstoreconnect/private_keys
+          echo "${{ secrets.ASC_API_KEY_CONTENT }}" > /root/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
 
       - name: Set up EAS CLI
         uses: expo/expo-github-action@v8
@@ -52,5 +52,5 @@ jobs:
         env:
           EXPO_APPLE_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.ASC_API_KEY_ISSUER_ID }}
-          EXPO_APPLE_APP_STORE_CONNECT_API_KEY_PATH: ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
+          EXPO_APPLE_APP_STORE_CONNECT_API_KEY_PATH: /root/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
         run: eas build --platform ios --profile production --auto-submit --non-interactive
