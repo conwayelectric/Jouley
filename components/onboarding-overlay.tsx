@@ -49,7 +49,7 @@ const STEPS: Step[] = [
   {
     id: "ring",
     title: "Your Battery Ring",
-    body: "This ring shows your current battery level at a glance. The colour tells you where you stand:\n\n🟢 Green: 100 to 75% — you are in great shape\n🟡 Yellow: 75 to 50% — still plenty of time\n🟠 Orange: 50 to 20% — worth thinking about a charger\n🔴 Red: 20 to 0% — time to plug in soon",
+    body: "This ring shows your current battery level at a glance. The colour tells you where you stand:\n\n🟢 Green: 85–100% — fully charged and ready\n🟡 Yellow: 50–70% — still plenty of time\n🟠 Amber: 25–40% — worth thinking about a charger\n🔴 Orange: 0–15% — time to plug in soon",
     spotlight: { x: W * 0.1, y: H * 0.12, w: W * 0.8, h: W * 0.8 },
     tooltipPosition: "bottom",
   },
