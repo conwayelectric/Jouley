@@ -12,25 +12,22 @@ const ARC_DEG = 270;
 const START_DEG = 135;
 const CX = SIZE / 2;
 const CY = SIZE / 2;
-const COLOR_TRACK = "#E5E7EB";
+const COLOR_TRACK = "#D4CFC7"; // theme.border.light — warm gray matching Conway cream surface
 
-// Pastel gradient color zones — soft, friendly tones:
-//  rose   (#F9A8A8): 0–16.5% solid
-//  blend  16.5–23.5%: rose → peach  (centered on 20%)
-//  peach  (#FDBA8C): 23.5–42.5% solid
-//  blend  42.5–47.5%: peach → pale yellow  (centered on 45%)
-//  yellow (#FDE68A): 47.5–67.5% solid
-//  blend  67.5–72.5%: pale yellow → sage green  (centered on 70%)
-//  sage   (#86EFAC): 72.5–100% solid
+// Conway brand color zones — hard breaks between zones:
+//  critical (0–20%):   Conway Electric orange #E8450A
+//  low      (20–40%):  amber #F59E0B
+//  moderate (40–60%):  yellow #EAB308
+//  good     (60–100%): green #22C55E
 const GRADIENT_STOPS: Array<{ pct: number; r: number; g: number; b: number }> = [
-  { pct: 0,    r: 249, g: 168, b: 168 },
-  { pct: 16.5, r: 249, g: 168, b: 168 },
-  { pct: 23.5, r: 253, g: 186, b: 140 },
-  { pct: 42.5, r: 253, g: 186, b: 140 },
-  { pct: 47.5, r: 253, g: 230, b: 138 },
-  { pct: 67.5, r: 253, g: 230, b: 138 },
-  { pct: 72.5, r: 134, g: 239, b: 172 },
-  { pct: 100,  r: 134, g: 239, b: 172 },
+  { pct: 0,   r: 232, g: 69,  b: 10  }, // Conway orange — critical start
+  { pct: 20,  r: 232, g: 69,  b: 10  }, // Conway orange — critical end
+  { pct: 20,  r: 245, g: 158, b: 11  }, // amber — low start
+  { pct: 40,  r: 245, g: 158, b: 11  }, // amber — low end
+  { pct: 40,  r: 234, g: 179, b: 8   }, // yellow — moderate start
+  { pct: 60,  r: 234, g: 179, b: 8   }, // yellow — moderate end
+  { pct: 60,  r: 34,  g: 197, b: 94  }, // green — good start
+  { pct: 100, r: 34,  g: 197, b: 94  }, // green — good end
 ];
 
 function interpolateColor(pct: number): { r: number; g: number; b: number } {

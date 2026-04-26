@@ -175,3 +175,6 @@
 - [x] Drain rate pastel color: >=1% rose, >=0.5% yellow, <0.5% sage green
 - [x] Time remaining pastel color: <20min rose, <45min yellow, >=45min sage green (both stats box and time card)
 - [x] Center % in battery ring already uses ring arc color (no change needed)
+- [x] Update battery ring gradient stops to Conway brand colors (orange/amber/yellow/green)
+- [x] Update track color to use theme.border.light (#D4CFC7)
+- [x] Update stats-row color helpers to match Conway brand color thresholds

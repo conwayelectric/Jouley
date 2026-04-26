@@ -1,43 +1,48 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-// ─── Shared pastel palette (mirrors battery-ring.tsx gradient stops) ──────────
-// Rose  (#F9A8A8): low battery / high drain / low time
-// Peach (#FDBA8C): mid-low
-// Yellow(#FDE68A): mid
-// Sage  (#86EFAC): good / low drain / plenty of time
+// ─── Conway brand color zones (mirrors battery-ring.tsx GRADIENT_STOPS) ──────
+// critical (0–20%):   Conway Electric orange #E8450A
+// low      (20–40%):  amber #F59E0B
+// moderate (40–60%):  yellow #EAB308
+// good     (60–100%): green #22C55E
 
-/** Returns the pastel ring color for a given battery level (0–100). */
-export function pastelColorForLevel(level: number): string {
-  if (level <= 20) return "#F9A8A8";   // pastel rose
-  if (level <= 45) return "#FDBA8C";   // pastel peach
-  if (level <= 70) return "#FDE68A";   // pastel yellow
-  return "#86EFAC";                     // pastel sage green
+/** Returns the gauge color for a given battery level (0–100). */
+export function gaugeColorForLevel(level: number): string {
+  if (level <= 20) return "#E8450A"; // Conway orange — critical
+  if (level <= 40) return "#F59E0B"; // amber — low
+  if (level <= 60) return "#EAB308"; // yellow — moderate
+  return "#22C55E";                   // green — good
 }
 
 /**
  * Drain rate color rules:
- *   >= 1.0 %/min  → pastel rose (high drain)
- *   >= 0.5 %/min  → pastel yellow (moderate)
- *   <  0.5 %/min  → pastel sage (low drain)
+ *   >= 1.0 %/min  → Conway orange (high drain = critical)
+ *   >= 0.5 %/min  → amber (moderate drain)
+ *   <  0.5 %/min  → green (low drain = good)
  */
-export function pastelColorForDrainRate(rate: number): string {
-  if (rate >= 1.0) return "#F9A8A8";
-  if (rate >= 0.5) return "#FDE68A";
-  return "#86EFAC";
+export function gaugeColorForDrainRate(rate: number): string {
+  if (rate >= 1.0) return "#E8450A";
+  if (rate >= 0.5) return "#F59E0B";
+  return "#22C55E";
 }
 
 /**
  * Time remaining color rules (minutes):
- *   < 20 min  → pastel rose
- *   < 45 min  → pastel yellow
- *   >= 45 min → pastel sage
+ *   < 20 min  → Conway orange (critical)
+ *   < 45 min  → amber (low)
+ *   >= 45 min → green (good)
  */
-export function pastelColorForMinutes(minutes: number): string {
-  if (minutes < 20) return "#F9A8A8";
-  if (minutes < 45) return "#FDE68A";
-  return "#86EFAC";
+export function gaugeColorForMinutes(minutes: number): string {
+  if (minutes < 20) return "#E8450A";
+  if (minutes < 45) return "#F59E0B";
+  return "#22C55E";
 }
+
+// Keep old names as aliases so existing imports in index.tsx don't break
+export const pastelColorForLevel = gaugeColorForLevel;
+export const pastelColorForDrainRate = gaugeColorForDrainRate;
+export const pastelColorForMinutes = gaugeColorForMinutes;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -78,27 +83,27 @@ export function StatsRow({
   const rateStr = ratePerMin !== null ? `${ratePerMin.toFixed(2)}%/min` : "—";
   const rateLabel = mode === "charging" ? "CHARGE RATE" : "DRAIN RATE";
 
-  // Current % — matches ring color
-  const levelAccent = pastelColorForLevel(level);
+  // Current % — matches ring color zone
+  const levelAccent = gaugeColorForLevel(level);
 
   // Drain/charge rate accent
   let rateAccent = "#9CA3AF";
   if (ratePerMin !== null) {
     if (mode === "charging") {
       // Charge rate: faster = better = greener
-      rateAccent = ratePerMin >= 1.0 ? "#86EFAC" : ratePerMin >= 0.5 ? "#FDE68A" : "#FDBA8C";
+      rateAccent = ratePerMin >= 1.0 ? "#22C55E" : ratePerMin >= 0.5 ? "#EAB308" : "#F59E0B";
     } else {
-      rateAccent = pastelColorForDrainRate(ratePerMin);
+      rateAccent = gaugeColorForDrainRate(ratePerMin);
     }
   }
 
   // Time remaining / time to full accent
   let timeAccent = "#9CA3AF";
   if (mode === "discharging" && minutesRemaining !== null) {
-    timeAccent = pastelColorForMinutes(minutesRemaining);
+    timeAccent = gaugeColorForMinutes(minutesRemaining);
   } else if (mode === "charging" && minutesToFull !== null) {
     // For charging, less time to full = better = greener
-    timeAccent = minutesToFull < 20 ? "#86EFAC" : minutesToFull < 45 ? "#FDE68A" : "#FDBA8C";
+    timeAccent = minutesToFull < 20 ? "#22C55E" : minutesToFull < 45 ? "#EAB308" : "#F59E0B";
   }
 
   return (
