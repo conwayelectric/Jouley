@@ -84,6 +84,11 @@ export default function SettingsScreen() {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status === "granted") {
       setNotifGranted(true);
+      // Also register background monitoring task now that we have permission
+      const alwaysOn = await AsyncStorage.getItem(STORAGE_KEY_ALWAYS_ON);
+      if (alwaysOn !== "false") {
+        await registerBackgroundBatteryTask();
+      }
     } else {
       Alert.alert(
         "Notifications Disabled",

@@ -391,17 +391,18 @@ export function useBatteryMonitor(): BatteryMonitorState {
           drainRate && drainRate > 0 ? Math.ceil(displayLevel / drainRate) : null;
 
         // Check minutes-remaining warnings (use OS level for accuracy, not interpolated)
+        // We iterate all thresholds so multiple crossed thresholds in one poll are all fired.
         let activeWarning: number | null = null;
         if (minutesRemaining !== null && notifPermRef.current) {
           for (const threshold of DISCHARGE_WARNINGS) {
             if (minutesRemaining <= threshold && !firedWarningsRef.current.has(threshold)) {
               firedWarningsRef.current.add(threshold);
               sendWarningNotification(threshold, drainRate, osLevelPct);
-              activeWarning = threshold;
-              break;
+              if (activeWarning === null) activeWarning = threshold;
             }
           }
           if (activeWarning === null) {
+            // Show the most recent already-fired warning as the active one
             for (const threshold of [...DISCHARGE_WARNINGS].reverse()) {
               if (minutesRemaining <= threshold && firedWarningsRef.current.has(threshold)) {
                 activeWarning = threshold;
@@ -468,10 +469,11 @@ export function useBatteryMonitor(): BatteryMonitorState {
         const milestones = buildMilestones(displayLevel, chargeRate ?? null);
 
         if (notifPermRef.current) {
-          for (const m of milestones) {
-            if (m.reached && !firedMilestonesRef.current.has(m.percent)) {
-              firedMilestonesRef.current.add(m.percent);
-              sendMilestoneNotification(m.percent);
+          for (const pct of CHARGE_MILESTONES) {
+            // Fire when the OS-reported level (not interpolated) reaches or exceeds the milestone
+            if (osLevelPct >= pct && !firedMilestonesRef.current.has(pct)) {
+              firedMilestonesRef.current.add(pct);
+              sendMilestoneNotification(pct);
             }
           }
         }
