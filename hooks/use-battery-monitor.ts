@@ -13,6 +13,7 @@ import {
   STORAGE_KEY_LAST_CHARGE_LEVEL,
   STORAGE_KEY_LAST_CHARGE_TIMESTAMP,
   STORAGE_KEY_LAST_CHARGE_RATE,
+  STORAGE_KEY_FIRED_WARNINGS,
   updateStoredDrainRate,
   updateStoredChargeState,
 } from "@/lib/background-battery-task";
@@ -188,6 +189,26 @@ function contextMessage(level: number, drainRatePerMin: number | null): string {
   return "Battery is very low — plugging in soon would be a good move";
 }
 
+/** Persist a fired warning threshold to AsyncStorage so background task won't re-fire it */
+async function persistFiredWarning(threshold: number): Promise<void> {
+  try {
+    const existing = await AsyncStorage.getItem(STORAGE_KEY_FIRED_WARNINGS);
+    const arr: number[] = existing ? JSON.parse(existing) : [];
+    if (!arr.includes(threshold)) {
+      arr.push(threshold);
+      await AsyncStorage.setItem(STORAGE_KEY_FIRED_WARNINGS, JSON.stringify(arr));
+    }
+  } catch {
+    // non-fatal
+  }
+}
+
+/** Persist a fired level warning to AsyncStorage using negative sentinel values */
+async function persistFiredLevelWarning(pct: number): Promise<void> {
+  // Use negative values as sentinels for level-based warnings (e.g. -20, -10)
+  await persistFiredWarning(-pct);
+}
+
 async function requestNotificationPermission(): Promise<boolean> {
   if (Platform.OS === "web") return false;
   const { status: existing } = await Notifications.getPermissionsAsync();
@@ -342,6 +363,10 @@ export function useBatteryMonitor(): BatteryMonitorState {
         firedLevelWarningsRef.current = new Set();
         firedMilestonesRef.current = new Set();
         prevModeRef.current = mode;
+        // Also clear the shared AsyncStorage store so background task resets too
+        if (prevMode !== "unknown") {
+          AsyncStorage.removeItem(STORAGE_KEY_FIRED_WARNINGS).catch(() => {});
+        }
       }
 
       if (mode === "discharging" && sessionStartLevelRef.current === null) {
@@ -398,6 +423,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
             if (minutesRemaining <= threshold && !firedWarningsRef.current.has(threshold)) {
               firedWarningsRef.current.add(threshold);
               sendWarningNotification(threshold, drainRate, osLevelPct);
+              persistFiredWarning(threshold); // sync to AsyncStorage so background task won't duplicate
               if (activeWarning === null) activeWarning = threshold;
             }
           }
@@ -427,6 +453,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
                 },
                 trigger: null,
               }).catch(() => {});
+              persistFiredLevelWarning(pct); // sync to AsyncStorage so background task won't duplicate
             }
           }
         }
@@ -544,6 +571,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
         storedChargeLevelStr,
         storedChargeTimestampStr,
         storedChargeRateStr,
+        firedWarningsStr,
       ] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY_LAST_LEVEL),
         AsyncStorage.getItem(STORAGE_KEY_LAST_TIMESTAMP),
@@ -551,7 +579,28 @@ export function useBatteryMonitor(): BatteryMonitorState {
         AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_LEVEL),
         AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_TIMESTAMP),
         AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_RATE),
+        AsyncStorage.getItem(STORAGE_KEY_FIRED_WARNINGS),
       ]);
+
+      // ── Pre-populate fired warning sets from AsyncStorage ──────────────────
+      // This prevents the in-app hook from re-firing warnings that the background
+      // task already sent while the app was closed (the burst notification bug).
+      if (firedWarningsStr) {
+        try {
+          const firedArr: number[] = JSON.parse(firedWarningsStr);
+          for (const val of firedArr) {
+            if (val > 0) {
+              // Positive values are minute-threshold warnings
+              firedWarningsRef.current.add(val);
+            } else if (val < 0) {
+              // Negative values are level-based warnings (sentinel: -pct)
+              firedLevelWarningsRef.current.add(-val);
+            }
+          }
+        } catch {
+          // non-fatal — corrupt data, start fresh
+        }
+      }
 
       // Populate drain rate ref — used immediately as fallback in compute()
       if (storedDrainRateStr) {
