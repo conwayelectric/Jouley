@@ -17,6 +17,7 @@ import {
   STORAGE_KEY_ALWAYS_ON,
   registerBackgroundBatteryTask,
 } from "@/lib/background-battery-task";
+import { scheduleDailyCheckIns } from "@/lib/daily-checkin-notifications";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -84,9 +85,10 @@ export default function RootLayout() {
         await AsyncStorage.setItem(STORAGE_KEY_ALWAYS_ON, "true");
       }
 
-      // Register background task if permission granted
+      // Register background task and daily check-ins if permission granted
       if (status === "granted") {
         await registerBackgroundBatteryTask();
+        await scheduleDailyCheckIns(); // schedule 7am, 11am, 3pm, 7pm reminders
       }
 
       await AsyncStorage.setItem(STORAGE_KEY_FIRST_LAUNCH, "true");
