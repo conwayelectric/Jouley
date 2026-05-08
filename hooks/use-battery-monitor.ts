@@ -13,16 +13,14 @@ import {
   STORAGE_KEY_LAST_CHARGE_LEVEL,
   STORAGE_KEY_LAST_CHARGE_TIMESTAMP,
   STORAGE_KEY_LAST_CHARGE_RATE,
-  STORAGE_KEY_FIRED_WARNINGS,
   updateStoredDrainRate,
   updateStoredChargeState,
 } from "@/lib/background-battery-task";
-
-// Warning thresholds in minutes remaining (discharge)
-const DISCHARGE_WARNINGS = [20, 15, 10, 7, 5, 2];
-
-// Percentage-level discharge warnings — fire regardless of drain rate
-const DISCHARGE_LEVEL_WARNINGS = [20, 10];
+import {
+  scheduleNudgeNotifications,
+  cancelNudgeNotifications,
+  resetNudgeSchedule,
+} from "@/lib/scheduled-nudge-notifications";
 
 // Charging milestones in percent
 const CHARGE_MILESTONES = [10, 25, 50, 75, 100];
@@ -163,88 +161,12 @@ function interpolateLevel(
   return interpolated;
 }
 
-/**
- * Shared contextual message logic (mirrors getContextMessage in index.tsx).
- * Thresholds tuned to typical iPhone usage: low ≤0.15%/min, medium 0.15–0.6%/min, high >0.6%/min.
- */
-function contextMessage(level: number, drainRatePerMin: number | null): string {
-  if (level > 50) return "Looking good";
-  const isLowDrain = drainRatePerMin !== null && drainRatePerMin <= 0.15;
-  const isMedDrain = drainRatePerMin !== null && drainRatePerMin > 0.15 && drainRatePerMin <= 0.6;
-  if (level > 30) {
-    if (isLowDrain) return "Your drain rate is nice and low — plenty of time";
-    if (isMedDrain) return "Still a comfortable amount of battery left";
-    return "A good time to start thinking about a charger";
-  }
-  if (level > 20) {
-    if (isLowDrain) return "Drain rate is slow — no rush, but worth keeping an eye out";
-    if (isMedDrain) return "Getting lower — worth keeping an eye out for a charger";
-    return "Now is a great time to find a charger";
-  }
-  if (level > 10) {
-    if (isLowDrain) return "Battery is low, but your drain rate is low too — you have time";
-    return "Battery is getting low — a charger nearby would be helpful";
-  }
-  if (isLowDrain) return "Battery is low but so is your drain rate — you have time to find a charge";
-  return "Battery is very low — plugging in soon would be a good move";
-}
-
-/** Persist a fired warning threshold to AsyncStorage so background task won't re-fire it */
-async function persistFiredWarning(threshold: number): Promise<void> {
-  try {
-    const existing = await AsyncStorage.getItem(STORAGE_KEY_FIRED_WARNINGS);
-    const arr: number[] = existing ? JSON.parse(existing) : [];
-    if (!arr.includes(threshold)) {
-      arr.push(threshold);
-      await AsyncStorage.setItem(STORAGE_KEY_FIRED_WARNINGS, JSON.stringify(arr));
-    }
-  } catch {
-    // non-fatal
-  }
-}
-
-/** Persist a fired level warning to AsyncStorage using negative sentinel values */
-async function persistFiredLevelWarning(pct: number): Promise<void> {
-  // Use negative values as sentinels for level-based warnings (e.g. -20, -10)
-  await persistFiredWarning(-pct);
-}
-
 async function requestNotificationPermission(): Promise<boolean> {
   if (Platform.OS === "web") return false;
   const { status: existing } = await Notifications.getPermissionsAsync();
   if (existing === "granted") return true;
   const { status } = await Notifications.requestPermissionsAsync();
   return status === "granted";
-}
-
-async function sendWarningNotification(minutesLeft: number, drainRatePerMin: number | null, levelPct?: number) {
-  const rateStr = drainRatePerMin ? ` Drain rate: ${drainRatePerMin.toFixed(2)}%/min.` : "";
-  const ctxMsg = levelPct !== undefined ? ` ${contextMessage(levelPct, drainRatePerMin)}.` : "";
-  let title: string;
-  let body: string;
-  if (minutesLeft <= 2) {
-    title = "🔋 2 Minutes Remaining";
-    body = `Plug in now and you'll be back in action fast.${rateStr}`;
-  } else if (minutesLeft <= 5) {
-    title = "🔋 5 Minutes Left — Let's Get You Charged";
-    body = `You have about ${minutesLeft} minutes left. A quick plug-in now and you'll be back to 100%.${ctxMsg}${rateStr}`;
-  } else if (minutesLeft <= 7) {
-    title = `⚡ ${minutesLeft} Minutes Remaining — You're Doing Great`;
-    body = `Still ${minutesLeft} minutes to go. Time to plug in and keep the momentum going.${ctxMsg}${rateStr}`;
-  } else if (minutesLeft <= 10) {
-    title = `⚡ ${minutesLeft} Minutes to Go`;
-    body = `A quick charge now will keep you going strong.${ctxMsg}${rateStr}`;
-  } else if (minutesLeft <= 15) {
-    title = `👍 About ${minutesLeft} Minutes Remaining`;
-    body = `You've still got time. Now's a great moment to find a charger.${ctxMsg}${rateStr}`;
-  } else {
-    title = `✨ Great News — ${minutesLeft} Minutes Left`;
-    body = `Your battery is starting to get low, but you have plenty of time.${ctxMsg}${rateStr}`;
-  }
-  await Notifications.scheduleNotificationAsync({
-    content: { title, body, sound: "battery-alert.wav" },
-    trigger: null,
-  });
 }
 
 async function sendMilestoneNotification(percent: number) {
@@ -275,8 +197,6 @@ export function useBatteryMonitor(): BatteryMonitorState {
   });
 
   const samplesRef = useRef<BatterySample[]>([]);
-  const firedWarningsRef = useRef<Set<number>>(new Set());
-  const firedLevelWarningsRef = useRef<Set<number>>(new Set());
   const firedMilestonesRef = useRef<Set<number>>(new Set());
   const prevModeRef = useRef<BatteryMode>("unknown");
   const notifPermRef = useRef<boolean>(false);
@@ -359,14 +279,15 @@ export function useBatteryMonitor(): BatteryMonitorState {
         if (prevMode !== "unknown") {
           samplesRef.current = [];
         }
-        firedWarningsRef.current = new Set();
-        firedLevelWarningsRef.current = new Set();
         firedMilestonesRef.current = new Set();
         prevModeRef.current = mode;
-        // Also clear the shared AsyncStorage store so background task resets too
-        if (prevMode !== "unknown") {
-          AsyncStorage.removeItem(STORAGE_KEY_FIRED_WARNINGS).catch(() => {});
+        // Reset nudge schedule so next compute reschedules from scratch
+        resetNudgeSchedule();
+        // Cancel scheduled nudge notifications when plugging in
+        if (mode === "charging" || mode === "full") {
+          cancelNudgeNotifications().catch(() => {});
         }
+
       }
 
       if (mode === "discharging" && sessionStartLevelRef.current === null) {
@@ -415,47 +336,12 @@ export function useBatteryMonitor(): BatteryMonitorState {
         const minutesRemaining =
           drainRate && drainRate > 0 ? Math.ceil(displayLevel / drainRate) : null;
 
-        // Check minutes-remaining warnings (use OS level for accuracy, not interpolated)
-        // We iterate all thresholds so multiple crossed thresholds in one poll are all fired.
-        let activeWarning: number | null = null;
-        if (minutesRemaining !== null && notifPermRef.current) {
-          for (const threshold of DISCHARGE_WARNINGS) {
-            if (minutesRemaining <= threshold && !firedWarningsRef.current.has(threshold)) {
-              firedWarningsRef.current.add(threshold);
-              sendWarningNotification(threshold, drainRate, osLevelPct);
-              persistFiredWarning(threshold); // sync to AsyncStorage so background task won't duplicate
-              if (activeWarning === null) activeWarning = threshold;
-            }
-          }
-          if (activeWarning === null) {
-            // Show the most recent already-fired warning as the active one
-            for (const threshold of [...DISCHARGE_WARNINGS].reverse()) {
-              if (minutesRemaining <= threshold && firedWarningsRef.current.has(threshold)) {
-                activeWarning = threshold;
-                break;
-              }
-            }
-          }
-        }
-
-        // Check percentage-level warnings — fire regardless of drain rate
-        if (notifPermRef.current) {
-          for (const pct of DISCHARGE_LEVEL_WARNINGS) {
-            if (osLevelPct <= pct && !firedLevelWarningsRef.current.has(pct)) {
-              firedLevelWarningsRef.current.add(pct);
-              Notifications.scheduleNotificationAsync({
-                content: {
-                  title: `🔋 Battery at ${pct}%`,
-                  body: pct <= 10
-                    ? "Battery is very low — plugging in soon would be a good move."
-                    : "Battery is getting low — a charger nearby would be helpful.",
-                  sound: "battery-alert.wav",
-                },
-                trigger: null,
-              }).catch(() => {});
-              persistFiredLevelWarning(pct); // sync to AsyncStorage so background task won't duplicate
-            }
-          }
+        // Schedule predictive nudge notifications based on drain rate
+        // These are scheduled for future delivery so iOS delivers them on time
+        // even when the app is closed — no more bursts or missed alerts.
+        const activeWarning: number | null = null;
+        if (drainRate !== null && drainRate > 0 && notifPermRef.current) {
+          scheduleNudgeNotifications(osLevelPct, drainRate).catch(() => {});
         }
 
         setState((prev) => ({
@@ -571,7 +457,6 @@ export function useBatteryMonitor(): BatteryMonitorState {
         storedChargeLevelStr,
         storedChargeTimestampStr,
         storedChargeRateStr,
-        firedWarningsStr,
       ] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY_LAST_LEVEL),
         AsyncStorage.getItem(STORAGE_KEY_LAST_TIMESTAMP),
@@ -579,28 +464,7 @@ export function useBatteryMonitor(): BatteryMonitorState {
         AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_LEVEL),
         AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_TIMESTAMP),
         AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_RATE),
-        AsyncStorage.getItem(STORAGE_KEY_FIRED_WARNINGS),
       ]);
-
-      // ── Pre-populate fired warning sets from AsyncStorage ──────────────────
-      // This prevents the in-app hook from re-firing warnings that the background
-      // task already sent while the app was closed (the burst notification bug).
-      if (firedWarningsStr) {
-        try {
-          const firedArr: number[] = JSON.parse(firedWarningsStr);
-          for (const val of firedArr) {
-            if (val > 0) {
-              // Positive values are minute-threshold warnings
-              firedWarningsRef.current.add(val);
-            } else if (val < 0) {
-              // Negative values are level-based warnings (sentinel: -pct)
-              firedLevelWarningsRef.current.add(-val);
-            }
-          }
-        } catch {
-          // non-fatal — corrupt data, start fresh
-        }
-      }
 
       // Populate drain rate ref — used immediately as fallback in compute()
       if (storedDrainRateStr) {
