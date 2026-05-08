@@ -26,7 +26,7 @@
  *  - Tier 2 fires when predicted time-to-25% arrives (if currently above 25%)
  *  - Tier 3 fires when predicted time-to-15% arrives (if currently above 15%)
  *  - All tiers cancelled immediately when plugged in
- *  - Rescheduled whenever drain rate changes by >20%
+ *  - Rescheduled whenever drain rate changes by >30% (e.g. video call, gaming spike)
  */
 
 import * as Notifications from "expo-notifications";
@@ -83,10 +83,12 @@ export async function scheduleNudgeNotifications(
     return;
   }
 
-  // Only reschedule if drain rate changed by >20% (avoid thrashing every 5s)
+  // Only reschedule if drain rate changed by >30% (avoid thrashing every 5s).
+  // A 30% change is meaningful — e.g. starting a video call or gaming session
+  // that significantly accelerates drain, making the original schedule stale.
   if (!force && lastScheduledDrainRate !== null) {
     const changePct = Math.abs(drainRatePerMin - lastScheduledDrainRate) / lastScheduledDrainRate;
-    if (changePct < 0.2) return;
+    if (changePct < 0.3) return;
   }
 
   lastScheduledDrainRate = drainRatePerMin;
