@@ -201,6 +201,8 @@ export function useBatteryMonitor(): BatteryMonitorState {
   const prevModeRef = useRef<BatteryMode>("unknown");
   const notifPermRef = useRef<boolean>(false);
   const baselineDrainRateRef = useRef<number | null>(null); // long-window baseline for spike detection
+  // Force-reschedule nudge notifications on first compute after mount (bypasses the 30% change gate)
+  const firstComputeRef = useRef<boolean>(true);
 
   // Track the last OS-confirmed level and its timestamp for interpolation
   const osLevelPctRef = useRef<number>(0);
@@ -283,6 +285,8 @@ export function useBatteryMonitor(): BatteryMonitorState {
         prevModeRef.current = mode;
         // Reset nudge schedule so next compute reschedules from scratch
         resetNudgeSchedule();
+        // Force-reschedule on the next compute after a mode transition
+        firstComputeRef.current = true;
         // Cancel scheduled nudge notifications when plugging in
         if (mode === "charging" || mode === "full") {
           cancelNudgeNotifications().catch(() => {});
@@ -339,9 +343,13 @@ export function useBatteryMonitor(): BatteryMonitorState {
         // Schedule predictive nudge notifications based on drain rate
         // These are scheduled for future delivery so iOS delivers them on time
         // even when the app is closed — no more bursts or missed alerts.
+        // Force-reschedule on first compute after mount so the 30% change gate
+        // doesn't block scheduling when the app opens with a cached drain rate.
         const activeWarning: number | null = null;
         if (drainRate !== null && drainRate > 0 && notifPermRef.current) {
-          scheduleNudgeNotifications(osLevelPct, drainRate).catch(() => {});
+          const forceSchedule = firstComputeRef.current;
+          firstComputeRef.current = false;
+          scheduleNudgeNotifications(osLevelPct, drainRate, forceSchedule).catch(() => {});
         }
 
         setState((prev) => ({

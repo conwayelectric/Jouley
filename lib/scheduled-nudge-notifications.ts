@@ -80,6 +80,8 @@ export async function scheduleNudgeNotifications(
   // Suppress all notifications above 60% — no urgency at high charge
   if (levelPct > 60) {
     await cancelNudgeNotifications();
+    // Reset so the next compute below 60% always reschedules fresh
+    lastScheduledDrainRate = null;
     return;
   }
 
@@ -111,7 +113,7 @@ export async function scheduleNudgeNotifications(
         seconds: tier1Seconds,
         repeats: false,
       },
-    }).catch(() => {});
+    }).catch((e) => { console.warn('[JOULEY] Failed to schedule tier1 nudge:', e); });
   }
 
   // Tier 2 — Moderate (only fires if battery is currently above 25%)
@@ -129,7 +131,7 @@ export async function scheduleNudgeNotifications(
         seconds: tier2Seconds,
         repeats: false,
       },
-    }).catch(() => {});
+    }).catch((e) => { console.warn('[JOULEY] Failed to schedule tier2 nudge:', e); });
   }
 
   // Tier 3 — Urgent (only fires if battery is currently above 15%)
@@ -147,7 +149,7 @@ export async function scheduleNudgeNotifications(
         seconds: tier3Seconds,
         repeats: false,
       },
-    }).catch(() => {});
+    }).catch((e) => { console.warn('[JOULEY] Failed to schedule tier3 nudge:', e); });
   }
 }
 
