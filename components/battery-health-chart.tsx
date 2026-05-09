@@ -100,11 +100,46 @@ function toSvgPoints(
   }));
 }
 
-/** Split an array of svg points into contiguous segments of hasData=true */
+/**
+ * Split an array of svg points into contiguous segments, bridging across
+ * small gaps (up to MAX_BRIDGE_GAP consecutive missing points) by linear
+ * interpolation. Larger gaps still break the line.
+ */
+const MAX_BRIDGE_GAP = 2;
+
 function segments(pts: { x: number; y: number; hasData: boolean }[]) {
+  // First, fill small gaps by interpolation
+  const filled = pts.map((p) => ({ ...p }));
+  let i = 0;
+  while (i < filled.length) {
+    if (!filled[i].hasData) {
+      // Find the end of this gap
+      let j = i;
+      while (j < filled.length && !filled[j].hasData) j++;
+      const gapLen = j - i;
+      // Only bridge if gap is small and we have data on both sides
+      if (gapLen <= MAX_BRIDGE_GAP && i > 0 && j < filled.length) {
+        const prev = filled[i - 1];
+        const next = filled[j];
+        for (let k = i; k < j; k++) {
+          const t = (k - i + 1) / (gapLen + 1);
+          filled[k] = {
+            x: prev.x + (next.x - prev.x) * t,
+            y: prev.y + (next.y - prev.y) * t,
+            hasData: true,
+          };
+        }
+      }
+      i = j;
+    } else {
+      i++;
+    }
+  }
+
+  // Now split into contiguous segments of hasData=true
   const segs: { x: number; y: number }[][] = [];
   let cur: { x: number; y: number }[] = [];
-  for (const p of pts) {
+  for (const p of filled) {
     if (p.hasData) {
       cur.push({ x: p.x, y: p.y });
     } else {

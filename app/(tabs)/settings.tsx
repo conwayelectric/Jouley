@@ -22,31 +22,24 @@ import {
   unregisterBackgroundBatteryTask,
 } from "@/lib/background-battery-task";
 import { STORAGE_KEY_ONBOARDING_DONE } from "@/components/onboarding-overlay";
-import {
-  getDailyCheckInEnabled,
-  setDailyCheckInEnabled,
-} from "@/lib/daily-checkin-notifications";
 
 export default function SettingsScreen() {
   const [alwaysOn, setAlwaysOn] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [notifGranted, setNotifGranted] = useState(false);
-  const [dailyCheckIn, setDailyCheckIn] = useState(true);
   const [loading, setLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
 
   const loadSettings = useCallback(async () => {
-    const [stored, { status }, lastCheckTs, soundStored, dailyEnabled] = await Promise.all([
+    const [stored, { status }, lastCheckTs, soundStored] = await Promise.all([
       AsyncStorage.getItem(STORAGE_KEY_ALWAYS_ON),
       Notifications.getPermissionsAsync(),
       AsyncStorage.getItem(STORAGE_KEY_LAST_BACKGROUND_CHECK),
       AsyncStorage.getItem(STORAGE_KEY_SOUND_ENABLED),
-      getDailyCheckInEnabled(),
     ]);
     // Default to true if never set
     setAlwaysOn(stored === null ? true : stored !== "false");
     setSoundEnabled(soundStored === null ? true : soundStored !== "false");
-    setDailyCheckIn(dailyEnabled);
     setNotifGranted(status === "granted");
     if (lastCheckTs) {
       const d = new Date(parseInt(lastCheckTs, 10));
@@ -78,11 +71,6 @@ export default function SettingsScreen() {
     await AsyncStorage.setItem(STORAGE_KEY_SOUND_ENABLED, String(value));
   };
 
-  const toggleDailyCheckIn = async (value: boolean) => {
-    setDailyCheckIn(value);
-    await setDailyCheckInEnabled(value);
-  };
-
   const resetWalkthrough = async () => {
     await AsyncStorage.removeItem(STORAGE_KEY_ONBOARDING_DONE);
     Alert.alert(
@@ -96,14 +84,10 @@ export default function SettingsScreen() {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status === "granted") {
       setNotifGranted(true);
-      // Register background monitoring task now that we have permission
-      const alwaysOnStored = await AsyncStorage.getItem(STORAGE_KEY_ALWAYS_ON);
-      if (alwaysOnStored !== "false") {
+      // Also register background monitoring task now that we have permission
+      const alwaysOn = await AsyncStorage.getItem(STORAGE_KEY_ALWAYS_ON);
+      if (alwaysOn !== "false") {
         await registerBackgroundBatteryTask();
-      }
-      // Schedule daily check-ins if the toggle is enabled
-      if (dailyCheckIn) {
-        await setDailyCheckInEnabled(true);
       }
     } else {
       Alert.alert(
@@ -232,33 +216,6 @@ export default function SettingsScreen() {
             >
               <Text style={styles.enableButtonText}>Enable Notifications</Text>
             </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Daily Check-In Notifications */}
-        <Text style={styles.sectionLabel}>DAILY REMINDERS</Text>
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>Daily Check-Ins</Text>
-              <Text style={styles.rowDesc}>
-                Sends a friendly reminder at 7 AM, 11 AM, 3 PM, and 7 PM to open JOULEY and check your battery.
-              </Text>
-            </View>
-            <Switch
-              value={dailyCheckIn}
-              onValueChange={toggleDailyCheckIn}
-              trackColor={{ false: "#D1D5DB", true: "#16A34A" }}
-              thumbColor={dailyCheckIn ? "#FFFFFF" : "#F9FAFB"}
-              ios_backgroundColor="#D1D5DB"
-            />
-          </View>
-          {dailyCheckIn && (
-            <View style={styles.infoBox}>
-              <Text style={styles.infoText}>
-                ✅ Active — reminders fire at 7:00 AM, 11:00 AM, 3:00 PM, and 7:00 PM every day.
-              </Text>
-            </View>
           )}
         </View>
 

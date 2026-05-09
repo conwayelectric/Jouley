@@ -36,7 +36,7 @@ const SLIDES: OnboardingSlide[] = [
     emoji: "🔋",
     title: "Your Battery Ring",
     body: "The large ring shows your current battery level at a glance. The colour tells you where you stand:",
-    highlight: "Green (75–100%) · Yellow (50–75%) · Orange (20–50%) · Red (0–20%)",
+    highlight: "🟢 Green (85–100%) · 🟡 Yellow (50–70%) · 🟠 Amber (25–40%) · 🔴 Orange (0–15%)",
     highlightColor: "#16A34A",
   },
   {
