@@ -22,24 +22,32 @@ import {
   unregisterBackgroundBatteryTask,
 } from "@/lib/background-battery-task";
 import { STORAGE_KEY_ONBOARDING_DONE } from "@/components/onboarding-overlay";
+import {
+  scheduleDailyCheckIns,
+  getDailyCheckInEnabled,
+  setDailyCheckInEnabled,
+} from "@/lib/daily-checkin-notifications";
 
 export default function SettingsScreen() {
   const [alwaysOn, setAlwaysOn] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [notifGranted, setNotifGranted] = useState(false);
+  const [dailyCheckInEnabled, setDailyCheckInEnabledState] = useState(true);
   const [loading, setLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
 
   const loadSettings = useCallback(async () => {
-    const [stored, { status }, lastCheckTs, soundStored] = await Promise.all([
+    const [stored, { status }, lastCheckTs, soundStored, dailyEnabled] = await Promise.all([
       AsyncStorage.getItem(STORAGE_KEY_ALWAYS_ON),
       Notifications.getPermissionsAsync(),
       AsyncStorage.getItem(STORAGE_KEY_LAST_BACKGROUND_CHECK),
       AsyncStorage.getItem(STORAGE_KEY_SOUND_ENABLED),
+      getDailyCheckInEnabled(),
     ]);
     // Default to true if never set
     setAlwaysOn(stored === null ? true : stored !== "false");
     setSoundEnabled(soundStored === null ? true : soundStored !== "false");
+    setDailyCheckInEnabledState(dailyEnabled);
     setNotifGranted(status === "granted");
     if (lastCheckTs) {
       const d = new Date(parseInt(lastCheckTs, 10));
@@ -80,15 +88,22 @@ export default function SettingsScreen() {
     );
   };
 
+  const toggleDailyCheckIn = async (value: boolean) => {
+    setDailyCheckInEnabledState(value);
+    await setDailyCheckInEnabled(value);
+  };
+
   const requestNotifPermission = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status === "granted") {
       setNotifGranted(true);
-      // Also register background monitoring task now that we have permission
+      // Also register background monitoring task and daily check-ins now that we have permission
       const alwaysOn = await AsyncStorage.getItem(STORAGE_KEY_ALWAYS_ON);
       if (alwaysOn !== "false") {
         await registerBackgroundBatteryTask();
       }
+      const dailyEnabled = await getDailyCheckInEnabled();
+      if (dailyEnabled) await scheduleDailyCheckIns();
     } else {
       Alert.alert(
         "Notifications Disabled",
@@ -193,8 +208,7 @@ export default function SettingsScreen() {
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>Push Notifications</Text>
               <Text style={styles.rowDesc}>
-                Required for battery warnings at 20, 15, 10, 7, 5, and 2 minutes
-                remaining, and for charging milestone alerts.
+                Required for battery nudge reminders and charging milestone alerts.
               </Text>
             </View>
             <View
@@ -219,23 +233,24 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        {/* Warning Thresholds Info */}
-        <Text style={styles.sectionLabel}>DISCHARGE WARNINGS</Text>
+        {/* Daily Reminders Section */}
+        <Text style={styles.sectionLabel}>DAILY REMINDERS</Text>
         <View style={styles.card}>
-          <Text style={styles.infoCardText}>
-            Push notifications are sent when battery time remaining reaches:
-          </Text>
-          <View style={styles.thresholdGrid}>
-            {[20, 15, 10, 7, 5, 2].map((t) => (
-              <View key={t} style={styles.thresholdBadge}>
-                <Text style={styles.thresholdText}>{t} min</Text>
-              </View>
-            ))}
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.rowTitle}>Daily Check-Ins</Text>
+              <Text style={styles.rowDesc}>
+                Sends a friendly reminder at 7 AM, 11 AM, 3 PM, and 7 PM to open JOULEY and check your battery.
+              </Text>
+            </View>
+            <Switch
+              value={dailyCheckInEnabled}
+              onValueChange={toggleDailyCheckIn}
+              trackColor={{ false: "#D1D5DB", true: "#16A34A" }}
+              thumbColor={dailyCheckInEnabled ? "#FFFFFF" : "#F9FAFB"}
+              ios_backgroundColor="#D1D5DB"
+            />
           </View>
-          <Text style={styles.infoCardSubtext}>
-            Each notification includes the current drain rate so you know how
-            fast your battery is being used.
-          </Text>
         </View>
 
         {/* Monitoring Status */}

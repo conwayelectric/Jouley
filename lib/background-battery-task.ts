@@ -3,27 +3,17 @@
  *
  * Registered globally (outside React) so it runs even when the app is closed.
  *
- * PREDICTIVE ESTIMATION ALGORITHM:
- * iOS limits background fetch to ~15 min intervals. Between those intervals,
- * this module stores:
- *   - The last known real battery level (from the OS)
- *   - The last known drain rate (%/min, calculated in-app)
- *   - The timestamp of the last real reading
- *
- * When the background task fires, it:
- *   1. Gets the real current level from the OS
- *   2. Also computes a "predicted" level = lastLevel - (drainRate × elapsed minutes)
- *   3. Uses the real level for accuracy but cross-checks with the prediction to
- *      detect if a warning threshold was crossed between the last real reading
- *      and now — even if the OS skipped an interval.
- *   4. Fires notifications for any warning thresholds crossed in that window.
+ * This task ONLY stores battery state for use by the in-app hook and the
+ * predictive nudge notification system. It does NOT fire its own notifications
+ * — all notifications are handled by scheduled-nudge-notifications.ts (which
+ * schedules future iOS-native notifications that fire on time even when the
+ * app is closed) and daily-checkin-notifications.ts (four daily reminders).
  *
  * Controlled by the "Always-On Monitoring" toggle in Settings (stored in AsyncStorage).
  */
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as Battery from "expo-battery";
-import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const BACKGROUND_BATTERY_TASK = "background-battery-monitor";
@@ -42,56 +32,6 @@ export const STORAGE_KEY_FIRST_LAUNCH = "conway_first_launch_done";
 export const STORAGE_KEY_SOUND_ENABLED = "conway_sound_enabled"; // "true" | "false", default true
 export const STORAGE_KEY_LAST_BACKGROUND_CHECK = "conway_last_background_check";
 
-// Low battery threshold for background alert
-const LOW_BATTERY_THRESHOLD = 30;
-
-/** Contextual message — tuned thresholds: low ≤0.15%/min, medium 0.15–0.6%/min */
-function contextMessage(level: number, drainRatePerMin: number | null): string {
-  if (level > 50) return "Looking good";
-  const isLowDrain = drainRatePerMin !== null && drainRatePerMin <= 0.15;
-  const isMedDrain = drainRatePerMin !== null && drainRatePerMin > 0.15 && drainRatePerMin <= 0.6;
-  if (level > 30) {
-    if (isLowDrain) return "Your drain rate is nice and low — plenty of time";
-    if (isMedDrain) return "Still a comfortable amount of battery left";
-    return "A good time to start thinking about a charger";
-  }
-  if (level > 20) {
-    if (isLowDrain) return "Drain rate is slow — no rush, but worth keeping an eye out";
-    if (isMedDrain) return "Getting lower — worth keeping an eye out for a charger";
-    return "Now is a great time to find a charger";
-  }
-  if (level > 10) {
-    if (isLowDrain) return "Battery is low, but your drain rate is low too — you have time";
-    return "Battery is getting low — a charger nearby would be helpful";
-  }
-  if (isLowDrain) return "Battery is low but so is your drain rate — you have time to find a charge";
-  return "Battery is very low — plugging in soon would be a good move";
-}
-
-// Warning thresholds in minutes remaining (must match in-app hook)
-const DISCHARGE_WARNINGS_MIN = [20, 15, 10, 7, 5, 2];
-
-/**
- * Predict battery level at a given time using linear drain model.
- * predictedLevel = lastLevel - drainRate * elapsedMinutes
- */
-function predictLevel(
-  lastLevel: number,
-  drainRatePerMin: number,
-  elapsedMs: number
-): number {
-  const elapsedMin = elapsedMs / 60_000;
-  return Math.max(0, lastLevel - drainRatePerMin * elapsedMin);
-}
-
-/**
- * Predict minutes remaining from a given level and drain rate.
- */
-function predictMinutesRemaining(level: number, drainRatePerMin: number): number | null {
-  if (drainRatePerMin <= 0) return null;
-  return Math.ceil(level / drainRatePerMin);
-}
-
 // Define the background task — MUST be in global scope
 TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
   try {
@@ -109,145 +49,39 @@ TaskManager.defineTask(BACKGROUND_BATTERY_TASK, async () => {
     const levelPct = Math.round(level * 100);
     const now = Date.now();
 
-    // Only alert when discharging
-    if (batteryState !== Battery.BatteryState.UNPLUGGED) {
-      // Reset fired warnings when charging
-      await AsyncStorage.multiRemove([
-        STORAGE_KEY_FIRED_WARNINGS,
-      ]);
-      // Store current level for next comparison
-      await AsyncStorage.setItem(STORAGE_KEY_LAST_LEVEL, String(levelPct));
-      await AsyncStorage.setItem(STORAGE_KEY_LAST_TIMESTAMP, String(now));
-      return BackgroundFetch.BackgroundFetchResult.NewData;
-    }
+    // ── Store battery state for in-app hook and nudge notification system ──
+    // This task no longer fires its own notifications. All notifications are
+    // handled by scheduled-nudge-notifications.ts (future-scheduled iOS alerts)
+    // and daily-checkin-notifications.ts (four daily reminders).
+    // This task only keeps drain rate data fresh for accurate nudge scheduling.
 
-    // ── Retrieve stored state ──────────────────────────────────────────────
-    const [prevLevelStr, prevTimestampStr, prevDrainRateStr, firedWarningsStr] =
-      await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEY_LAST_LEVEL),
-        AsyncStorage.getItem(STORAGE_KEY_LAST_TIMESTAMP),
-        AsyncStorage.getItem(STORAGE_KEY_LAST_DRAIN_RATE),
-        AsyncStorage.getItem(STORAGE_KEY_FIRED_WARNINGS),
-      ]);
+    // Retrieve stored state to update drain rate
+    const [prevLevelStr, prevTimestampStr, prevDrainRateStr] = await Promise.all([
+      AsyncStorage.getItem(STORAGE_KEY_LAST_LEVEL),
+      AsyncStorage.getItem(STORAGE_KEY_LAST_TIMESTAMP),
+      AsyncStorage.getItem(STORAGE_KEY_LAST_DRAIN_RATE),
+    ]);
 
     const prevLevel = prevLevelStr ? parseFloat(prevLevelStr) : null;
     const prevTimestamp = prevTimestampStr ? parseInt(prevTimestampStr, 10) : null;
-    const storedDrainRate = prevDrainRateStr ? parseFloat(prevDrainRateStr) : null;
-    const firedWarnings: number[] = firedWarningsStr
-      ? JSON.parse(firedWarningsStr)
-      : [];
-
-    // ── Calculate real drain rate from this OS reading ─────────────────────
-    let drainRatePerMin: number | null = storedDrainRate;
-    if (prevLevel !== null && prevTimestamp !== null) {
+    // Update drain rate if we have a fresh reading while discharging
+    if (
+      batteryState === Battery.BatteryState.UNPLUGGED &&
+      prevLevel !== null &&
+      prevTimestamp !== null
+    ) {
       const deltaMin = (now - prevTimestamp) / 60_000;
       const deltaLevel = prevLevel - levelPct; // positive = draining
       if (deltaMin >= 5 && deltaLevel > 0) {
-        // Fresh rate from real OS reading — cap at 1.5%/min
-        drainRatePerMin = Math.min(deltaLevel / deltaMin, 1.5);
-        await AsyncStorage.setItem(
-          STORAGE_KEY_LAST_DRAIN_RATE,
-          String(drainRatePerMin)
-        );
+        const freshRate = Math.min(deltaLevel / deltaMin, 1.5);
+        await AsyncStorage.setItem(STORAGE_KEY_LAST_DRAIN_RATE, String(freshRate));
       }
     }
 
-    // ── Predictive gap-fill: estimate level at intermediate points ─────────
-    // If we have a drain rate and a previous reading, check if any warning
-    // thresholds were crossed between the last real reading and now.
-    if (prevLevel !== null && prevTimestamp !== null && drainRatePerMin !== null) {
-      const elapsedMs = now - prevTimestamp;
-      // Sample every 1 minute between last reading and now
-      const steps = Math.floor(elapsedMs / 60_000);
-      for (let i = 1; i <= steps; i++) {
-        const sampleElapsedMs = i * 60_000;
-        const estimatedLevel = predictLevel(prevLevel, drainRatePerMin, sampleElapsedMs);
-        const estimatedMinRemaining = predictMinutesRemaining(
-          estimatedLevel,
-          drainRatePerMin
-        );
-        if (estimatedMinRemaining === null) continue;
-
-        // Check each warning threshold
-        for (const threshold of DISCHARGE_WARNINGS_MIN) {
-          if (
-            estimatedMinRemaining <= threshold &&
-            !firedWarnings.includes(threshold)
-          ) {
-            firedWarnings.push(threshold);
-            const isLowLevel = estimatedLevel <= 20;
-            const lowPowerTip = isLowLevel
-              ? " Enable Low Power Mode: Settings → Battery."
-              : "";
-            let bgTitle: string;
-            let bgBody: string;
-            const levelStr = `${estimatedLevel.toFixed(0)}%`;
-            const rateStr = `Drain rate: ${drainRatePerMin.toFixed(2)}%/min.`;
-            const ctxMsg = ` ${contextMessage(Math.round(estimatedLevel), drainRatePerMin)}.`;
-            if (threshold <= 2) {
-              bgTitle = "🔋 2 Minutes Remaining";
-              bgBody = `Plug in now and you'll be back in action fast. (${levelStr}) ${rateStr}${lowPowerTip}`;
-            } else if (threshold <= 5) {
-              bgTitle = "🔋 5 Minutes Left — Let's Get You Charged";
-              bgBody = `You have about ${threshold} minutes left. A quick plug-in now and you'll be back to 100%.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
-            } else if (threshold <= 7) {
-              bgTitle = `⚡ ${threshold} Minutes Remaining — You're Doing Great`;
-              bgBody = `Still ${threshold} minutes to go. Time to plug in and keep the momentum going.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
-            } else if (threshold <= 10) {
-              bgTitle = `⚡ ${threshold} Minutes to Go`;
-              bgBody = `A quick charge now will keep you going strong.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
-            } else if (threshold <= 15) {
-              bgTitle = `👍 About ${threshold} Minutes Remaining`;
-              bgBody = `You've still got time. Now's a great moment to find a charger.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
-            } else {
-              bgTitle = `✨ Great News — ${threshold} Minutes Left`;
-              bgBody = `Your battery is starting to get low, but you have plenty of time.${ctxMsg} (${levelStr}) ${rateStr}${lowPowerTip}`;
-            }
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: bgTitle,
-                body: bgBody,
-                sound: "battery-alert.wav",
-              },
-              trigger: null, // fire immediately
-            });
-          }
-        }
-      }
-    }
-
-    // ── Real-level check: fire 30% low battery alert ───────────────────────
-    const minutesRemaining = drainRatePerMin
-      ? predictMinutesRemaining(levelPct, drainRatePerMin)
-      : null;
-
-    if (levelPct <= LOW_BATTERY_THRESHOLD && !firedWarnings.includes(-30)) {
-      firedWarnings.push(-30); // use -30 as sentinel for the 30% level alert
-      const rateStr = drainRatePerMin
-        ? ` Drain rate: ${drainRatePerMin.toFixed(2)}%/min.`
-        : "";
-      const minutesStr = minutesRemaining
-        ? ` (~${minutesRemaining} min remaining)`
-        : "";
-      const friendlyMinStr = minutesRemaining ? ` You still have about ${minutesRemaining} minutes of use left.` : "";
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `💡 Heads Up — Battery at ${levelPct}%`,
-          body: `Great news — you still have plenty of time to find a charger.${friendlyMinStr}${rateStr} Tip: Low Power Mode (Settings → Battery) can stretch your time even further.`,
-          sound: "battery-alert.wav",
-        },
-        trigger: null,
-      });
-    }
-
-    // ── Save state for next background run ────────────────────────────────
+    // Save current level and timestamp for next background run
     await AsyncStorage.setItem(STORAGE_KEY_LAST_LEVEL, String(levelPct));
     await AsyncStorage.setItem(STORAGE_KEY_LAST_TIMESTAMP, String(now));
     await AsyncStorage.setItem(STORAGE_KEY_LAST_BACKGROUND_CHECK, String(now));
-    await AsyncStorage.setItem(
-      STORAGE_KEY_FIRED_WARNINGS,
-      JSON.stringify(firedWarnings)
-    );
 
     return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (e) {

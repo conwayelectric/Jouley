@@ -18,6 +18,10 @@ import {
   registerBackgroundBatteryTask,
 } from "@/lib/background-battery-task";
 import {
+  scheduleDailyCheckIns,
+  getDailyCheckInEnabled,
+} from "@/lib/daily-checkin-notifications";
+import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
   SafeAreaProvider,
@@ -68,6 +72,17 @@ export default function RootLayout() {
     initManusRuntime();
   }, []);
 
+  // On every app open: reschedule daily check-ins if enabled (ensures they persist after app updates)
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    (async () => {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== "granted") return;
+      const enabled = await getDailyCheckInEnabled();
+      if (enabled) await scheduleDailyCheckIns();
+    })();
+  }, []);
+
   // First-launch: request notification permission and enable background monitoring
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -84,9 +99,10 @@ export default function RootLayout() {
         await AsyncStorage.setItem(STORAGE_KEY_ALWAYS_ON, "true");
       }
 
-      // Register background task if permission granted
+      // Register background task and daily check-ins if permission granted
       if (status === "granted") {
         await registerBackgroundBatteryTask();
+        await scheduleDailyCheckIns();
       }
 
       await AsyncStorage.setItem(STORAGE_KEY_FIRST_LAUNCH, "true");
