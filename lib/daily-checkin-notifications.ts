@@ -4,8 +4,10 @@
  * Schedules four repeating daily notifications at 7 AM, 11 AM, 3 PM, and 7 PM.
  * Each notification is a gentle reminder to open JOULEY and check battery status.
  *
- * Uses CALENDAR trigger type so iOS fires them on time even when the app is closed.
- * Each notification has a stable identifier so rescheduling cancels the old one first.
+ * Uses the DAILY trigger type (SchedulableTriggerInputTypes.DAILY) which is the
+ * simplest and most reliable way to fire a notification at a fixed time every day
+ * on iOS. Each notification has a stable identifier so rescheduling cancels the
+ * old one first without creating duplicates.
  *
  * Controlled by the "Daily Reminders" toggle in Settings (stored in AsyncStorage).
  */
@@ -28,11 +30,11 @@ const DAILY_SLOTS: Array<{ id: string; hour: number; minute: number }> = [
 
 /**
  * Schedule all four daily check-in notifications.
- * Safe to call multiple times -- cancels existing ones first.
+ * Safe to call multiple times — cancels existing ones first.
  */
 export async function scheduleDailyCheckIns(): Promise<void> {
   try {
-    // Cancel any existing check-in notifications first
+    // Cancel any existing check-in notifications first to avoid duplicates
     await cancelDailyCheckIns();
 
     for (const slot of DAILY_SLOTS) {
@@ -41,16 +43,16 @@ export async function scheduleDailyCheckIns(): Promise<void> {
         content: {
           title: NOTIFICATION_TITLE,
           body: NOTIFICATION_BODY,
-          sound: false,
+          sound: true,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: slot.hour,
           minute: slot.minute,
-          repeats: true,
         },
       });
     }
+    console.log("[DailyCheckIns] Scheduled 4 daily check-in notifications.");
   } catch (error) {
     console.warn("[DailyCheckIns] Failed to schedule daily check-ins:", error);
   }

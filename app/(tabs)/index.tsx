@@ -30,17 +30,6 @@ import * as Clipboard from "expo-clipboard";
 
 const fullyChargedSound = require("@/assets/sounds/fully-charged.mp3");
 
-// Notifications only appear as native pop-ups when the app is backgrounded or closed.
-// When the app is open, the dashboard shows live minutes remaining instead.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: false,   // suppress in-app alert
-    shouldShowBanner: false,  // suppress in-app banner
-    shouldShowList: true,     // still log to notification centre
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
 
 function formatTime(minutes: number | null): string {
   if (minutes === null) return "—";

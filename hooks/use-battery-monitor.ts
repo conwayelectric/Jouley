@@ -169,16 +169,6 @@ async function requestNotificationPermission(): Promise<boolean> {
   return status === "granted";
 }
 
-async function sendMilestoneNotification(percent: number) {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: `${percent === 100 ? "🎉" : "⚡"} JOULEY`,
-      body: percent === 100 ? "Battery fully charged!" : `Battery has reached ${percent}% charge.`,
-      sound: "battery-alert.wav",
-    },
-    trigger: null,
-  });
-}
 
 export function useBatteryMonitor(): BatteryMonitorState {
   const [state, setState] = useState<BatteryMonitorState>({
@@ -197,7 +187,6 @@ export function useBatteryMonitor(): BatteryMonitorState {
   });
 
   const samplesRef = useRef<BatterySample[]>([]);
-  const firedMilestonesRef = useRef<Set<number>>(new Set());
   const prevModeRef = useRef<BatteryMode>("unknown");
   const notifPermRef = useRef<boolean>(false);
   const baselineDrainRateRef = useRef<number | null>(null); // long-window baseline for spike detection
@@ -281,7 +270,6 @@ export function useBatteryMonitor(): BatteryMonitorState {
         if (prevMode !== "unknown") {
           samplesRef.current = [];
         }
-        firedMilestonesRef.current = new Set();
         prevModeRef.current = mode;
         // Reset nudge schedule so next compute reschedules from scratch
         resetNudgeSchedule();
@@ -388,16 +376,6 @@ export function useBatteryMonitor(): BatteryMonitorState {
         const minutesToFull =
           chargeRate && chargeRate > 0 ? Math.ceil((100 - displayLevel) / chargeRate) : null;
         const milestones = buildMilestones(displayLevel, chargeRate ?? null);
-
-        if (notifPermRef.current) {
-          for (const pct of CHARGE_MILESTONES) {
-            // Fire when the OS-reported level (not interpolated) reaches or exceeds the milestone
-            if (osLevelPct >= pct && !firedMilestonesRef.current.has(pct)) {
-              firedMilestonesRef.current.add(pct);
-              sendMilestoneNotification(pct);
-            }
-          }
-        }
 
         setState((prev) => ({
           ...prev,
