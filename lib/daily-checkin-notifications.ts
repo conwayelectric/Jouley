@@ -1,13 +1,17 @@
 /**
  * Daily Check-In Notifications
  *
- * Schedules four repeating daily notifications at 7 AM, 11 AM, 3 PM, and 7 PM.
- * Each notification is a gentle reminder to open JOULEY and check battery status.
+ * Schedules four repeating daily notifications at 7 AM, 11 AM, 3 PM, and 7 PM
+ * in the device's LOCAL timezone.
  *
- * Uses the DAILY trigger type (SchedulableTriggerInputTypes.DAILY) which is the
- * simplest and most reliable way to fire a notification at a fixed time every day
- * on iOS. Each notification has a stable identifier so rescheduling cancels the
- * old one first without creating duplicates.
+ * Uses the CALENDAR trigger with an explicit `timezone` field so iOS fires the
+ * notifications at the correct local time regardless of where the device is.
+ * The timezone is read at schedule-time via Intl.DateTimeFormat — if the user
+ * travels, they should toggle the Daily Reminders switch off and back on to
+ * reschedule with the new timezone.
+ *
+ * Each notification has a stable identifier so rescheduling cancels the old one
+ * first without creating duplicates.
  *
  * Controlled by the "Daily Reminders" toggle in Settings (stored in AsyncStorage).
  */
@@ -29,13 +33,28 @@ const DAILY_SLOTS: Array<{ id: string; hour: number; minute: number }> = [
 ];
 
 /**
- * Schedule all four daily check-in notifications.
+ * Returns the device's local IANA timezone string, e.g. "America/New_York".
+ * Falls back to "UTC" if Intl is unavailable.
+ */
+function getLocalTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+/**
+ * Schedule all four daily check-in notifications in the device's local timezone.
  * Safe to call multiple times — cancels existing ones first.
  */
 export async function scheduleDailyCheckIns(): Promise<void> {
   try {
     // Cancel any existing check-in notifications first to avoid duplicates
     await cancelDailyCheckIns();
+
+    const timezone = getLocalTimezone();
+    console.log(`[DailyCheckIns] Scheduling for timezone: ${timezone}`);
 
     for (const slot of DAILY_SLOTS) {
       await Notifications.scheduleNotificationAsync({
@@ -46,9 +65,11 @@ export async function scheduleDailyCheckIns(): Promise<void> {
           sound: true,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
           hour: slot.hour,
           minute: slot.minute,
+          repeats: true,
+          timezone,
         },
       });
     }
