@@ -50,8 +50,10 @@ const MAX_DRAIN_RATE = 1.5;
 // Maximum realistic charge rate (% per minute)
 const MAX_CHARGE_RATE = 1.2;
 
-// Max age of a stored rate before we consider it stale (2 hours)
-const MAX_STORED_RATE_AGE_MS = 2 * 60 * 60_000;
+// Max age of a stored rate before we consider it stale (30 minutes).
+// A rate from more than 30 minutes ago reflects a different usage pattern
+// and should not be shown as the current drain rate.
+const MAX_STORED_RATE_AGE_MS = 30 * 60_000;
 
 export type BatteryMode = "discharging" | "charging" | "full" | "unknown";
 
@@ -452,14 +454,18 @@ export function useBatteryMonitor(): BatteryMonitorState {
         AsyncStorage.getItem(STORAGE_KEY_LAST_CHARGE_RATE),
       ]);
 
-      // Populate drain rate ref — used immediately as fallback in compute()
-      if (storedDrainRateStr) {
+      // Populate drain rate ref — used immediately as fallback in compute().
+      // Only use the stored rate if it is fresh (within MAX_STORED_RATE_AGE_MS).
+      // A stale rate from a different usage session is worse than no rate at all.
+      const storedRateAgeMs = storedTimestampStr ? now - parseInt(storedTimestampStr, 10) : Infinity;
+      if (storedDrainRateStr && storedRateAgeMs < MAX_STORED_RATE_AGE_MS) {
         const rate = parseFloat(storedDrainRateStr);
         if (rate > 0 && rate <= MAX_DRAIN_RATE) storedDrainRateRef.current = rate;
       } else if (batteryState === Battery.BatteryState.UNPLUGGED) {
-        // No stored rate at all (first ever launch) — generate an instant estimate
-        // from device model, brightness, and Low Power Mode so the display is
-        // never blank. This estimate is clearly marked with isRateEstimated = true.
+        // No fresh stored rate — generate an instant device-model estimate so the
+        // display shows something reasonable while live samples warm up.
+        // This covers both first-ever launch and cases where the stored rate is stale.
+        // Clearly marked with isRateEstimated = true in the UI.
         const isLPM = await Battery.isLowPowerModeEnabledAsync().catch(() => false);
         const estimated = await estimateInitialDrainRate(isLPM);
         if (estimated > 0) storedDrainRateRef.current = estimated;

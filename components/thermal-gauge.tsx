@@ -44,8 +44,9 @@ export function ThermalGauge({ value, zone, label }: ThermalGaugeProps) {
 
   return (
     <View style={styles.container}>
-      {/* Row 1: Centered "DEVICE TEMP" title */}
+      {/* Row 1: Centered "DEVICE TEMP" title + inferred disclaimer */}
       <Text style={styles.headerLabel}>DEVICE TEMP</Text>
+      <Text style={styles.inferredNote}>Estimated from usage signals · iOS does not expose battery temperature</Text>
 
       {/* Row 2: Colored zone label + optional detail, centered, below title */}
       <Text style={[styles.zoneLabel, { color: activeColor }]}>
@@ -141,6 +142,14 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     letterSpacing: 1.5,
     textAlign: "center",
+  },
+  inferredNote: {
+    fontSize: 9,
+    color: "#9CA3AF",
+    fontWeight: "400",
+    textAlign: "center",
+    opacity: 0.8,
+    marginTop: -2,
   },
   zoneLabel: {
     fontSize: 11,

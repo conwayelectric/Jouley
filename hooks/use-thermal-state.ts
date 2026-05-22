@@ -115,14 +115,16 @@ export function useThermalState(
     score += brightnessScore;
     if (brightness > 0.75) factors.push("high screen brightness");
 
-    // Signal 2: Drain rate vs baseline (0–0.5 contribution)
+    // Signal 2: Drain rate vs baseline (0–0.5 contribution).
+    // Starts contributing at 0.8× baseline (slightly elevated) rather than 1.0×
+    // so the gauge responds sooner when the device is under real load.
     if (drainRatePerMin !== null && drainRatePerMin > 0) {
       const ratio = drainRatePerMin / baseline;
-      // ratio 1.0 = normal, 2.0+ = very hot
-      const drainScore = Math.min((ratio - 1.0) * 0.5, 0.5);
+      // ratio 0.8 = slightly elevated, 1.0 = normal, 2.0+ = very hot
+      const drainScore = Math.min(Math.max(0, (ratio - 0.8) * 0.42), 0.5);
       if (drainScore > 0) {
         score += drainScore;
-        if (ratio > 1.5) factors.push("elevated drain rate");
+        if (ratio > 1.3) factors.push("elevated drain rate");
       }
     }
 
